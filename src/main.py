@@ -1,15 +1,14 @@
 """
 tba
 """
-# import os
+from db.postgres import build_pg_database
 
 
 def main():
     """
     tba
     """
-
-    print("Hello World!")
+    build_pg_database()
 
 
 if __name__ == "__main__":
