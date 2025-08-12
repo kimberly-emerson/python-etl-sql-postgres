@@ -1,0 +1,138 @@
+[
+  {
+    "source_query_select": "Person.AddressType__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Person.CountryRegion__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Person.PhoneNumberType__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Production.ProductCategory__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Production.ProductDescription__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Production.ProductModel__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Production.UnitMeasure__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Purchasing.ShipMethod__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Sales.CreditCard__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Sales.Currency__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Sales.SalesReason__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Sales.SpecialOffer__SELECT.sql",
+    "execution_order": "0"
+  },
+  {
+    "source_query_select": "Person.Person__SELECT.sql",
+    "execution_order": "1"
+  },
+  {
+    "source_query_select": "Production.ProductSubcategory__SELECT.sql",
+    "execution_order": "1"
+  },
+  {
+    "source_query_select": "Sales.CountryRegionCurrency__SELECT.sql",
+    "execution_order": "1"
+  },
+  {
+    "source_query_select": "Sales.CurrencyRate__SELECT.sql",
+    "execution_order": "1"
+  },
+  {
+    "source_query_select": "Sales.SalesTerritory__SELECT.sql",
+    "execution_order": "1"
+  },
+  {
+    "source_query_select": "Person.EmailAddress__SELECT.sql",
+    "execution_order": "2"
+  },
+  {
+    "source_query_select": "Person.PersonPhone__SELECT.sql",
+    "execution_order": "2"
+  },
+  {
+    "source_query_select": "Person.StateProvince__SELECT.sql",
+    "execution_order": "2"
+  },
+  {
+    "source_query_select": "Production.Product__SELECT.sql",
+    "execution_order": "2"
+  },
+  {
+    "source_query_select": "Sales.PersonCreditCard__SELECT.sql",
+    "execution_order": "2"
+  },
+  {
+    "source_query_select": "Person.Address__SELECT.sql",
+    "execution_order": "3"
+  },
+  {
+    "source_query_select": "Sales.SalesPerson__SELECT.sql",
+    "execution_order": "3"
+  },
+  {
+    "source_query_select": "Sales.SalesTaxRate__SELECT.sql",
+    "execution_order": "3"
+  },
+  {
+    "source_query_select": "Sales.ShoppingCartItem__SELECT.sql",
+    "execution_order": "3"
+  },
+  {
+    "source_query_select": "Sales.SpecialOfferProduct__SELECT.sql",
+    "execution_order": "3"
+  },
+  {
+    "source_query_select": "Sales.SalesPersonQuotaHistory__SELECT.sql",
+    "execution_order": "4"
+  },
+  {
+    "source_query_select": "Sales.SalesTerritoryHistory__SELECT.sql",
+    "execution_order": "4"
+  },
+  {
+    "source_query_select": "Sales.Store__SELECT.sql",
+    "execution_order": "4"
+  },
+  {
+    "source_query_select": "Sales.Customer__SELECT.sql",
+    "execution_order": "5"
+  },
+  {
+    "source_query_select": "Sales.SalesOrderHeader__SELECT.sql",
+    "execution_order": "6"
+  },
+  {
+    "source_query_select": "Sales.SalesOrderDetail__SELECT.sql",
+    "execution_order": "7"
+  },
+  {
+    "source_query_select": "Sales.SalesOrderHeaderSalesReason__SELECT.sql",
+    "execution_order": "7"
+  }
+]
