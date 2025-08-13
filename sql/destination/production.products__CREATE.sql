@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS production.products
     size character varying(5) COLLATE pg_catalog."default",
     size_unit_measure_code character varying(3) COLLATE pg_catalog."default",
     weight_unit_measure_code character varying(3) COLLATE pg_catalog."default",
-    weight numeric(8,2) NOT NULL DEFAULT 0,
+    weight numeric(8,2) NULL DEFAULT 0,
     days_to_manufacture integer NOT NULL,
     product_line character varying(2) COLLATE pg_catalog."default",
     class character varying(2) COLLATE pg_catalog."default",

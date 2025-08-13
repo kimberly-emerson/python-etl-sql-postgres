@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS sales.special_offers
     start_date timestamp without time zone NOT NULL,
     end_date timestamp without time zone NOT NULL,
     min_qty integer NOT NULL DEFAULT 0,
-    max_qty integer NOT NULL DEFAULT 0,
+    max_qty integer NULL DEFAULT 0,
     rowguid uuid NOT NULL DEFAULT gen_random_uuid(),
     modified_date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_sales_special_offers

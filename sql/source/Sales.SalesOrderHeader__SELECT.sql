@@ -4,7 +4,7 @@ SELECT [SalesOrderID]
       ,[DueDate]
       ,[ShipDate]
       ,[Status]
-      ,[OnlineOrderFlag]
+      ,[OnlineOrderFlag] = CAST(CAST(OnlineOrderFlag AS BIT) AS CHAR(1))
       ,[SalesOrderNumber]
       ,[PurchaseOrderNumber]
       ,[AccountNumber]

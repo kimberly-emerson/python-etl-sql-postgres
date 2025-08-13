@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS people.addresses
 (
     address_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
     address_line1 character varying(60) COLLATE pg_catalog."default" NOT NULL,
-    address_line2 character varying(60) COLLATE pg_catalog."default" NOT NULL,
+    address_line2 character varying(60) COLLATE pg_catalog."default" NULL,
     city character varying(30) COLLATE pg_catalog."default" NOT NULL,
     state_province_id integer NOT NULL,
     postal_code character varying(15) COLLATE pg_catalog."default" NOT NULL,

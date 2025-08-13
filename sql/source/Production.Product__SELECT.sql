@@ -1,8 +1,8 @@
 SELECT [ProductID]
       ,[Name]
       ,[ProductNumber]
-      ,[MakeFlag]
-      ,[FinishedGoodsFlag]
+      ,[MakeFlag] = CAST(CAST(MakeFlag AS BIT) AS CHAR(1))
+      ,[FinishedGoodsFlag] = CAST(CAST(FinishedGoodsFlag AS BIT) AS CHAR(1))
       ,[Color]
       ,[SafetyStockLevel]
       ,[ReorderPoint]
@@ -13,9 +13,9 @@ SELECT [ProductID]
       ,[WeightUnitMeasureCode]
       ,[Weight]
       ,[DaysToManufacture]
-      ,[ProductLine]
-      ,[Class]
-      ,[Style]
+      ,[ProductLine] = RTRIM(ProductLine)
+      ,[Class] = RTRIM(Class)
+      ,[Style] = RTRIM(Style)
       ,[ProductSubcategoryID]
       ,[ProductModelID]
       ,[SellStartDate]
