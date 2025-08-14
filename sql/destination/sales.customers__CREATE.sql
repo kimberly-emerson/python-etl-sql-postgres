@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS sales.customers
 (
     customer_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-    person_id integer NOT NULL,
-    store_id integer NOT NULL,
-    sales_territory_id integer NOT NULL,
+    person_id integer NULL,
+    store_id integer NULL,
+    sales_territory_id integer NULL,
     account_number character varying(255) COLLATE pg_catalog."default" GENERATED ALWAYS AS (('SALES'::text || customer_id)) STORED,
     rowguid uuid NOT NULL DEFAULT gen_random_uuid(),
     modified_date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
