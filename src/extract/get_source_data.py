@@ -1,5 +1,6 @@
 import os
 import logging
+import utils.logger
 from db.sql_server import execute_sql_query
 from utils.file_handler import read_json_file, read_query_from_file, get_query_list_from_file
 
@@ -8,6 +9,9 @@ SOURCE_PATH = f"{os.getenv("SQL_PATH")}\\source"
 
 def get_source_data(file: str = None):
     
+    loggerSource = logging.getLogger('source')
+    logging.info("------ GET SOURCE DATA ------")
+
     # instantiate data list variable to be returned
     data: list = list()
 
