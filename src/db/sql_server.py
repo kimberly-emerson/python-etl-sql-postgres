@@ -6,19 +6,19 @@ import os
 import logging
 from dotenv import load_dotenv
 from pyodbc import connect, DatabaseError, Error
-# from utils.read_files import read_query_from_file
 
 load_dotenv()
 
 SQL_PATH = os.getenv("SQL_PATH")
 
 
-def execute_sql_query(conn=None, query=None):
+def execute_sql_query(conn, query: str = None):
     """
     tba
     """
 
-    records = None
+    rows = list()
+    data = list()
 
     try:
         if conn is None:
@@ -26,19 +26,26 @@ def execute_sql_query(conn=None, query=None):
 
         cursor = conn.cursor()
         cursor.execute(query)
-        records = cursor.fetchall()
+        rows = cursor.fetchall()
+
+        for row in rows:
+            data.append(list(row))
+
         conn.commit()
         cursor.close()
+
     except DatabaseError as error:
         if conn:
             conn.rollback()
-            logging.error(error)
+            logging.error(f"QUERY: {query}, {error}")
+
     except Error as error:
         if conn:
             conn.rollback()
             logging.error(error)
+
     finally:
         if conn:
             conn.close()
 
-    return records
+    return data
