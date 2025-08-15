@@ -4,7 +4,6 @@ tba
 
 import os
 import logging
-import utils.logger
 from db.postgresql import execute_pg_query, set_pg_connection
 from utils.file_handler import get_query_list_from_file, load_json_file, read_query_from_file
 
@@ -15,9 +14,6 @@ def insert_pg_tables(file: str, data: list):
     """
     tba
     """
-
-    loggerInsert = logging.getLogger('insert')
-    logging.info("------ INSERT SOURCE DATA ------")
 
     # instantiate success boolean variable to be returned
     success: bool = False
