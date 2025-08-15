@@ -5,7 +5,7 @@ tba
 import os
 import logging
 from db.postgresql import build_pg_database, drop_pg_database
-# import utils.logger
+import utils.logger
 from build.create_destination_tables import create_pg_tables
 from build.truncate_destination_tables import truncate_pg_tables
 from extract.get_source_data import get_source_data
@@ -40,7 +40,7 @@ def main():
             # drop database
             # drop role
             drop_pg_database()
-    
+            
             logging.info("------ BUILD DATABASE ------")
             # create database
             # create role
