@@ -128,7 +128,7 @@ def build_pg_database():
     logging.info("SUCCESS: Database build completed.")
 
 
-def pg_build(path: str = None, database: str = None):
+def pg_build(path: str, database: str):
     """
     tba
     """
@@ -137,6 +137,10 @@ def pg_build(path: str = None, database: str = None):
     try:
         
         query = read_query_from_file(path)
+
+        if "AW_SALES_DB_PASSWORD" in query:
+            password: str = os.getenv("AW_SALES_PASSWORD")
+            query.replace('<AW_SALES_DB_PASSWORD>', password)
         
         conn = set_pg_connection(database)
         
@@ -153,12 +157,21 @@ def drop_pg_database():
     tba
     """
 
-    db_drop_path = f"{DESTINATION_PATH}\\db_database__DROP.sql"
-    role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
-    
-    # drop database
-    pg_build(path=db_drop_path, database=None)
-    # drop role
-    pg_build(path=role_drop_path, database=None)
+    success: bool = False
 
-    logging.info("SUCCESS: Database build completed.")
+    try:
+
+        db_drop_path = f"{DESTINATION_PATH}\\db_database__DROP.sql"
+        role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
+        
+        # drop database
+        pg_build(path=db_drop_path, database=None)
+        # drop role
+        pg_build(path=role_drop_path, database=None)
+
+        logging.info("SUCCESS: Database build completed.")
+
+    except Exception as e:
+        logging.error(e)
+
+    return success
