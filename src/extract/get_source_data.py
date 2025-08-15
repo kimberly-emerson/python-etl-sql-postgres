@@ -1,16 +1,13 @@
 import os
 import logging
-import utils.logger
 from db.sql_server import execute_sql_query
 from utils.file_handler import read_json_file, read_query_from_file, get_query_list_from_file
+from utils.validation import validate_list
 
 SOURCE_PATH = f"{os.getenv("SQL_PATH")}\\source"
 
 
 def get_source_data(file: str = None):
-    
-    loggerSource = logging.getLogger('source')
-    logging.info("------ GET SOURCE DATA ------")
 
     # instantiate data list variable to be returned
     data: list = list()
@@ -41,16 +38,19 @@ def get_source_data(file: str = None):
                 # execute query using default postgres connection
                 response = execute_sql_query(conn = None, query = query)
 
-                print(f"{file[44:len(file)]} added.")
+                # print(f"{file[44:len(file)]} added.")
                 
                 # add query result to data list
                 data.append((table[0], response))
+
 
     except FileNotFoundError as error:
         logging.error(error)
 
     except Exception as e:  # pylint: disable=broad-except
         logging.error(e)
+
+    success = validate_list("Source Data", data)
 
     # return data list containing source data
     return data
