@@ -146,3 +146,19 @@ def pg_build(path: str = None, database: str = None):
         logging.error(e)
 
     return success
+
+
+def drop_pg_database():
+    """
+    tba
+    """
+
+    db_drop_path = f"{DESTINATION_PATH}\\db_database__DROP.sql"
+    role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
+    
+    # drop database
+    pg_build(path=db_drop_path, database=None)
+    # drop role
+    pg_build(path=role_drop_path, database=None)
+
+    logging.info("SUCCESS: Database build completed.")
