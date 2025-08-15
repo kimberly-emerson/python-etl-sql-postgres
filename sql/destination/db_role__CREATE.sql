@@ -1,3 +1,3 @@
 CREATE ROLE etl_user WITH
   LOGIN
-  PASSWORD 'demopass';
+  PASSWORD <AW_SALES_DB_PASSWORD>;
