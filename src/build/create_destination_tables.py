@@ -18,6 +18,8 @@ def create_pg_tables(file: str):
         
         if queries[0]:
             query_list = get_query_list_from_file("destination_query_create",queries[1])
+            
+            logging.info("------ EXECUTE CREATE SQL SCRIPTS ------")
 
             for table in query_list[1]:
 
@@ -29,6 +31,7 @@ def create_pg_tables(file: str):
                     logging.warning(f"{file} does not return a query.")
                     raise FileNotFoundError
                 
+            
                 conn = set_pg_connection("aw_sales")
                 
                 execute_pg_query(conn,query=query)

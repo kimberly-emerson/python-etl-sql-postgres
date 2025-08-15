@@ -28,6 +28,8 @@ def insert_pg_tables(file: str, data: list):
             # get destination query file list
             query_list = get_query_list_from_file("destination_query_insert", queries)
 
+            logging.info("------ EXECUTE INSERT SQL SCRIPTS ------")
+            
             for table in query_list[1]:
                 
                 # filter source data for destination table
@@ -44,6 +46,7 @@ def insert_pg_tables(file: str, data: list):
                     logging.warning(f"{file} does not return a query.")
                     raise FileNotFoundError
                 
+            
                 # set connection to postgresql database
                 conn = set_pg_connection("aw_sales")
                 

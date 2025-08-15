@@ -40,7 +40,7 @@ def main():
             # drop database
             # drop role
             drop_pg_database()
-            
+
             logging.info("------ BUILD DATABASE ------")
             # create database
             # create role
