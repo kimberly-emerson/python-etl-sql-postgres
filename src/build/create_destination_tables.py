@@ -5,23 +5,23 @@ tba
 import os
 import logging
 from db.postgresql import execute_pg_query, set_pg_connection
-from utils.file_handler import get_query_list_from_file, read_query_from_file
+from utils.file_handler import read_json_file, get_query_list_from_file, read_query_from_file
 from utils.validation import validate_list
 
 DESTINATION_PATH = f"{os.getenv("SQL_PATH")}\\destination"
 
 
-def create_pg_tables(file: str=None):
+def create_pg_tables(file: str):
     
     try:
-        queries = read_query_from_file(file)
+        queries = read_json_file("Destination Mapping", file)
         
         if queries[0]:
             query_list = get_query_list_from_file("destination_query_create",queries[1])
 
-            for query in query_list[1]:
+            for table in query_list[1]:
 
-                file = f"{DESTINATION_PATH}\\{query}"
+                file = f"{DESTINATION_PATH}\\{table[1]}"
                 
                 query = read_query_from_file(file)
                 
