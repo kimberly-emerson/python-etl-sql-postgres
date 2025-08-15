@@ -4,8 +4,8 @@ tba
 
 import os
 import logging
-from db.postgresql import build_pg_database
-import utils.logger
+from db.postgresql import build_pg_database, drop_pg_database
+# import utils.logger
 from build.create_destination_tables import create_pg_tables
 from build.truncate_destination_tables import truncate_pg_tables
 from extract.get_source_data import get_source_data
@@ -22,26 +22,42 @@ def main():
     tba
     """
 
+    loggerMain = logging.getLogger('main')
+
     build = os.getenv("AW_SALES_DB_BUILD")
     
-    if build == "1":
+    match build:
     
-        # create database
-        # create role
-        # grant database permissions
-        # create schemas
-        # grant schema and table permissions
-        build_pg_database()
+        case "0":
 
-        # execute create table queries    
-        create_pg_tables(DESTINATION_FILE)
+            logging.info("------ TRUNCATE TABLES ------")
+            # execute truncate queries in destination
+            truncate_pg_tables(TRUNCATE_FILE)
+        
+        case "1":
 
-    # execute truncate queries in destination
-    truncate_pg_tables(TRUNCATE_FILE)
+            logging.info("------ DROP DATABASE ------")
+            # drop database
+            # drop role
+            drop_pg_database()
     
+            logging.info("------ BUILD DATABASE ------")
+            # create database
+            # create role
+            # grant database permissions
+            # create schemas
+            # grant schema and table permissions
+            build_pg_database()
+
+            logging.info("------ CREATE TABLES ------")
+            # execute create table queries    
+            create_pg_tables(DESTINATION_FILE)
+
+    logging.info("------ GET SOURCE DATA ------")
     # execute select queries to get source data
     source_data = get_source_data(SOURCE_FILE)
 
+    logging.info("------ INSERT SOURCE DATA ------")
     # execute insert queries to insert source data
     insert_pg_tables(DESTINATION_FILE, source_data)
  
