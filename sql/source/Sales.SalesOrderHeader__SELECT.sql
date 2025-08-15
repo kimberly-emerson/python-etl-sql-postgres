@@ -1,11 +1,10 @@
 SELECT [SalesOrderID]
       ,[RevisionNumber]
-      ,[OrderDate]
-      ,[DueDate]
-      ,[ShipDate]
+      ,[OrderDate] = CONVERT(VARCHAR,OrderDate,120)
+      ,[DueDate] = CONVERT(VARCHAR,DueDate,120)
+      ,[ShipDate] = CONVERT(VARCHAR,ShipDate,120)
       ,[Status]
       ,[OnlineOrderFlag] = CAST(CAST(OnlineOrderFlag AS BIT) AS CHAR(1))
-      ,[SalesOrderNumber]
       ,[PurchaseOrderNumber]
       ,[AccountNumber]
       ,[CustomerID]
@@ -17,11 +16,10 @@ SELECT [SalesOrderID]
       ,[CreditCardID]
       ,[CreditCardApprovalCode]
       ,[CurrencyRateID]
-      ,[SubTotal]
-      ,[TaxAmt]
-      ,[Freight]
-      ,[TotalDue]
+      ,[SubTotal] = CAST(Subtotal AS DECIMAL(18,2))
+      ,[TaxAmt] = CAST(Subtotal AS DECIMAL(18,2))
+      ,[Freight] = CAST(Subtotal AS DECIMAL(18,2))
       ,[Comment]
       ,[rowguid] = CONVERT(VARCHAR(36),rowguid)
       ,[ModifiedDate] = CONVERT(VARCHAR,ModifiedDate,120)
-  FROM [Sales].[SalesOrderHeader]
+  FROM [Sales].[SalesOrderHeader]   
