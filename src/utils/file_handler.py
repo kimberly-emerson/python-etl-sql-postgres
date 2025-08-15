@@ -6,7 +6,7 @@ import json
 from utils.validation import validate_list
 
 
-def read_json_file(name: str=None, file: str=None):   
+def read_json_file(name: str, file: str):   
     """
     tba
     """
@@ -37,7 +37,7 @@ def read_json_file(name: str=None, file: str=None):
     return (success, queries)
 
 
-def load_json_file(path: str=None):
+def load_json_file(file: str):
     """
     """
     
@@ -46,7 +46,7 @@ def load_json_file(path: str=None):
 
     try:
         # open json file
-        with open(path, "r", encoding="UTF-8") as file:
+        with open(file, "r", encoding="UTF-8") as file:
             # append loaded json file to data list variable
             data = json.load(file)
 
@@ -63,7 +63,7 @@ def load_json_file(path: str=None):
     return data
 
 
-def read_query_from_file(path: str=None):
+def read_query_from_file(path: str):
     """
     """
 
