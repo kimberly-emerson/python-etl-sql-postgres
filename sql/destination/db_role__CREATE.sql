@@ -1,3 +1,3 @@
 CREATE ROLE etl_user WITH
   LOGIN
-  PASSWORD <AW_SALES_DB_PASSWORD>;
+  PASSWORD '$password';
