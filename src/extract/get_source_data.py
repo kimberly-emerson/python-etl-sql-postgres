@@ -23,6 +23,7 @@ def get_source_data(file: str = None):
             query_list = get_query_list_from_file("source_query_select", queries[1])
 
             for table in query_list[1]:
+
                 # construct full path to source query file
                 file = f"{SOURCE_PATH}\\{table[1]}"
                 
@@ -37,8 +38,6 @@ def get_source_data(file: str = None):
                 
                 # execute query using default postgres connection
                 response = execute_sql_query(conn = None, query = query)
-
-                # print(f"{file[44:len(file)]} added.")
                 
                 # add query result to data list
                 data.append((table[0], response))
