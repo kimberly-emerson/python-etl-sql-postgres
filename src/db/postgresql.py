@@ -3,6 +3,7 @@ tba
 """
 import os
 import logging
+from string import Template
 from psycopg2 import connect, DatabaseError, IntegrityError, Error
 from psycopg2.extras import execute_batch
 from utils.file_handler import read_query_from_file
@@ -128,6 +129,31 @@ def build_pg_database():
     logging.info("SUCCESS: Database build completed.")
 
 
+def drop_pg_database():
+    """
+    tba
+    """
+
+    success: bool = False
+
+    db_drop_path = f"{DESTINATION_PATH}\\db_database__DROP.sql"
+    role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
+
+    try:
+        
+        # drop database
+        pg_build(path=db_drop_path, database=None)
+        # drop role
+        pg_build(path=role_drop_path, database=None)
+
+        logging.info("SUCCESS: Database drop completed.")
+
+    except Exception as e:
+        logging.error(e)
+
+    return success
+
+
 def pg_build(path: str, database: str):
     """
     tba
@@ -136,42 +162,18 @@ def pg_build(path: str, database: str):
 
     try:
         
-        query = read_query_from_file(path)
+        query: str = read_query_from_file(path)
 
-        if "AW_SALES_DB_PASSWORD" in query:
-            password: str = os.getenv("AW_SALES_PASSWORD")
-            query.replace('<AW_SALES_DB_PASSWORD>', password)
+        if '$password' in query:
+            query = Template(query).substitute(
+                password =  os.getenv("AW_SALES_DB_PASSWORD"),
+            )
         
         conn = set_pg_connection(database)
         
         execute_pg_query(conn, query)
     
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    return success
-
-
-def drop_pg_database():
-    """
-    tba
-    """
-
-    success: bool = False
-
-    try:
-
-        db_drop_path = f"{DESTINATION_PATH}\\db_database__DROP.sql"
-        role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
-        
-        # drop database
-        pg_build(path=db_drop_path, database=None)
-        # drop role
-        pg_build(path=role_drop_path, database=None)
-
-        logging.info("SUCCESS: Database build completed.")
-
-    except Exception as e:
         logging.error(e)
 
     return success
