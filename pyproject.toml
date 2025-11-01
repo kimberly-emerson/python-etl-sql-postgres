@@ -1,12 +1,18 @@
 [project]
 name = "python-etl-sql-postgres"
 version = "0.1.0"
-description = "Python ETL demo project: SQL Server to PostgreSQL"
+description = "Default template for PDM package"
 authors = [
     {name = "kimberly-emerson", email = "kimberly.emerson@outlook.com"},
 ]
-dependencies = ["psycopg2>=2.9.10", "pyodbc>=5.2.0", "python-dotenv>=1.1.1"]
-requires-python = "==3.13.*"
+dependencies = [
+    "psycopg2>=2.9.10",
+    "pyodbc>=5.2.0",
+    "python-dotenv>=1.1.1",
+    "pandas>=2.3.3",
+    "black>=25.9.0",
+]
+requires-python = "==3.14.*"
 readme = "README.md"
 license = {text = "MIT"}
 
