@@ -56,3 +56,4 @@ execution_order,is_app_table,table_id,source_schema,source_table,source_query_se
 6,1,32,Sales,SalesOrderHeader,Sales.SalesOrderHeader__SELECT.sql,8/13/2025,sales,sales_order_headers,sales.sales_order_headers__CREATE.sql,8/13/2025,sales.sales_order_headers__INSERT.sql,
 7,1,33,Sales,SalesOrderDetail,Sales.SalesOrderDetail__SELECT.sql,8/13/2025,sales,sales_order_details,sales.sales_order_details__CREATE.sql,8/13/2025,sales.sales_order_details__INSERT.sql,
 7,1,34,Sales,SalesOrderHeaderSalesReason,Sales.SalesOrderHeaderSalesReason__SELECT.sql,8/13/2025,sales,sales_order_header_sales_reasons,sales.sales_order_header_sales_reasons__CREATE.sql,8/13/2025,sales.sales_order_header_sales_reasons__INSERT.sql,
+0,1,35,Person,Location,Person.Location__SELECT.sql,,people,locations,people.locations__CREATE.sql,,people.locations__INSERT.sql,

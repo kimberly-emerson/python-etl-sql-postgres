@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS people.state_provinces
     state_province_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
     state_province_code character varying(3) COLLATE pg_catalog."default" NOT NULL,
     country_region_code character varying(3) COLLATE pg_catalog."default" NOT NULL,
-    is_only_state_province_flag bit(1) NOT NULL DEFAULT '1'::"bit",
+    is_only_state_province_flag boolean NOT NULL DEFAULT TRUE,
     name character varying(255) COLLATE pg_catalog."default" NOT NULL,
     sales_territory_id integer NOT NULL,
     rowguid uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -43,10 +43,10 @@ CREATE INDEX IF NOT EXISTS idx_people_state_provinces_is_only_state_province_fla
     ON people.state_provinces USING btree
     (is_only_state_province_flag ASC NULLS LAST)
     TABLESPACE pg_default
-    WHERE is_only_state_province_flag = '0'::"bit";
+    WHERE is_only_state_province_flag = FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_people_state_provinces_is_only_state_province_flag_true
     ON people.state_provinces USING btree
     (is_only_state_province_flag ASC NULLS LAST)
     TABLESPACE pg_default
-    WHERE is_only_state_province_flag = '1'::"bit";
+    WHERE is_only_state_province_flag = TRUE;

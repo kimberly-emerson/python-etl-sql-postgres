@@ -12,6 +12,12 @@
     "execution_order": "0"
   },
   {
+    "destination_query_create": "people.locations__CREATE.sql",
+    "destination_query_insert": "people.locations__INSERT.sql",
+    "table_id": "35",
+    "execution_order": "0"
+  },
+  {
     "destination_query_create": "people.phone_number_types__CREATE.sql",
     "destination_query_insert": "people.phone_number_types__INSERT.sql",
     "table_id": "3",

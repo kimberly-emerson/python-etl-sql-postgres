@@ -5,12 +5,11 @@ tba
 import os
 import logging
 from db.postgresql import build_pg_database, drop_pg_database
-import utils.logger
 from build.create_destination_tables import create_pg_tables
 from build.truncate_destination_tables import truncate_pg_tables
 from extract.get_source_data import get_source_data
 from load.insert_source_data import insert_pg_tables
-    
+
 SQL_PATH = os.getenv('SQL_PATH')
 SOURCE_FILE = f"{SQL_PATH}\\mapping_source.json"
 DESTINATION_FILE = f"{SQL_PATH}\\mapping_destination.json"
@@ -22,18 +21,18 @@ def main():
     tba
     """
 
-    loggerMain = logging.getLogger('main')
+    logging.getLogger('main')
 
     build = os.getenv("AW_SALES_DB_BUILD")
-    
+
     match build:
-    
+
         case "0":
 
             logging.info("------ TRUNCATE TABLES ------")
             # execute truncate queries in destination
             truncate_pg_tables(TRUNCATE_FILE)
-        
+
         case "1":
 
             logging.info("------ DROP DATABASE ------")
@@ -60,7 +59,7 @@ def main():
     logging.info("------ INSERT SOURCE DATA ------")
     # execute insert queries to insert source data
     insert_pg_tables(DESTINATION_FILE, source_data)
- 
+
 
 if __name__ == "__main__":
     main()

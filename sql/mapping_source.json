@@ -10,6 +10,11 @@
     "execution_order": "0"
   },
   {
+    "source_query_select": "Person.Location__SELECT.sql",
+    "table_id": "35",
+    "execution_order": "0"
+  },
+  {
     "source_query_select": "Person.PhoneNumberType__SELECT.sql",
     "table_id": "3",
     "execution_order": "0"
