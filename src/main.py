@@ -1,6 +1,131 @@
 """
-tba
+ETL Orchestration Module
+=========================
+
+This module coordinates a full ETL lifecycle for PostgreSQL databases,
+including schema provisioning, role management, data extraction, and data
+loading. It supports both production and test environments and is designed for
+command-line execution.
+
+Overview
+--------
+
+The module performs the following operations:
+
+- Drops existing databases and roles.
+- Builds query/table mappings from a CSV file.
+- Creates databases, roles, schemas, and tables.
+- Extracts source data from SQL Server.
+- Loads data into PostgreSQL destination tables.
+- Optionally seeds a test database.
+
+Environment Configuration
+-------------------------
+
+The following environment variables must be defined:
+
+- ``SQL_PATH``: Base path for SQL assets and mapping files.
+- ``DB_ROLE``: Role name used for PostgreSQL provisioning.
+
+File Paths
+----------
+
+- ``MAPPING_FILE``: Path to the CSV file containing table/query mappings.
+- ``SOURCE_FILE``: Path to the generated source mapping JSON file.
+- ``DESTINATION_FILE``: Path to the generated destination mapping JSON file.
+
+Command-Line Interface
+----------------------
+
+.. code-block:: bash
+
+   python main.py --database analytics --seed-test-database true
+
+.. argparse::
+   :module: main
+   :func: parser.parse_args
+   :prog: main.py
+
+Functions
+---------
+
+.. function:: main(args)
+
+   Entry point for the ETL process. Coordinates all steps from teardown to
+   data load.
+
+   :param args: Parsed command-line arguments.
+   :type args: argparse.Namespace
+
+.. function:: drop_database(database) -> bool
+
+   Drops the specified PostgreSQL database.
+
+   :param database: Name of the database to drop.
+   :type database: str
+   :return: ``True`` if the database was dropped successfully.
+   :rtype: bool
+
+.. function:: drop_role(database)
+
+   Drops the PostgreSQL role associated with the target database.
+
+   :param database: Name of the database whose role should be dropped.
+   :type database: str
+   :return: ``True`` if the role was dropped successfully.
+   :rtype: bool
+
+.. function:: build_mapping_data(mapping_file, source_file, destination_file)
+
+   Generates source and destination query mappings from a CSV file and writes
+   them to JSON.
+
+   :param mapping_file: Path to the CSV mapping file.
+   :type mapping_file: str
+   :param source_file: Output path for source mapping JSON.
+   :type source_file: str
+   :param destination_file: Output path for destination mapping JSON.
+   :type destination_file: str
+
+.. function:: build_database(database)
+
+   Creates the database, role, schemas, and grants permissions.
+
+   :param database: Name of the database to build.
+   :type database: str
+
+.. function:: create_database_tables(database, destination_file)
+
+   Executes SQL `CREATE TABLE` scripts for the specified database.
+
+   :param database: Target database name.
+   :type database: str
+   :param destination_file: Path to the destination mapping JSON file.
+   :type destination_file: str
+
+.. function:: extract_source_data(source_file)
+
+   Extracts source data from SQL Server using select queries.
+
+   :param source_file: Path to the source mapping JSON file.
+   :type source_file: str
+   :return: List of tuples containing table ID and query results.
+   :rtype: list[tuple[int, Any]]
+
+.. function:: load_destination_tables(database, destination_file, source_data)
+
+   Loads extracted source data into PostgreSQL destination tables.
+
+   :param database: Target database name.
+   :type database: str
+   :param destination_file: Path to the destination mapping JSON file.
+   :type destination_file: str
+   :param source_data: Extracted source data.
+   :type source_data: list
+   :return: ``True`` if data was loaded successfully.
+   :rtype: bool
 """
+
 import argparse
 from decouple import config
 
@@ -23,7 +148,11 @@ DESTINATION_FILE = f"{SQL_PATH}\\mapping_destination.json"
 
 def main(args):
     """
-    tba
+     Entry point for the ETL process. Coordinates all steps from teardown to
+    data load.
+
+    :param args: Parsed command-line arguments.
+    :type args: argparse.Namespace
     """
     logging.getLogger("main")
     test_database = f"{args.database}_test"
@@ -71,23 +200,58 @@ def main(args):
 
 
 def load_destination_tables(database, destination_file, source_data):
+    """
+     Loads extracted source data into PostgreSQL destination tables.
+
+    :param database: Target database name.
+    :type database: str
+    :param destination_file: Path to the destination mapping JSON file.
+    :type destination_file: str
+    :param source_data: Extracted source data.
+    :type source_data: list
+    :return: ``True`` if data was loaded successfully.
+    :rtype: bool
+    """
+
     # execute insert queries to insert source data
     success = insert_pg_tables(database, destination_file, source_data)
     return success
 
 
 def extract_source_data(source_file):
+    """
+     Extracts source data from SQL Server using select queries.
+
+    :param source_file: Path to the source mapping JSON file.
+    :type source_file: str
+    :return: List of tuples containing table ID and query results.
+    :rtype: list[tuple[int, Any]]
+    """
     # execute select queries to get source data
     source_data = get_source_data(source_file)
     return source_data
 
 
 def create_database_tables(database, destination_file):
+    """
+     Executes SQL `CREATE TABLE` scripts for the specified database.
+
+    :param database: Target database name.
+    :type database: str
+    :param destination_file: Path to the destination mapping JSON file.
+    :type destination_file: str
+    """
     # database: execute create table queries
     create_pg_tables(database, destination_file)
 
 
 def build_database(database):
+    """
+     Creates the database, role, schemas, and grants permissions.
+
+    :param database: Name of the database to build.
+    :type database: str
+    """
     # create database
     # create role
     # grant database permissions
@@ -100,7 +264,15 @@ def build_database(database):
 
 def build_mapping_data(mapping_file, source_file, destination_file):
     """
-    tba
+     Generates source and destination query mappings from a CSV file and writes
+    them to JSON.
+
+    :param mapping_file: Path to the CSV mapping file.
+    :type mapping_file: str
+    :param source_file: Output path for source mapping JSON.
+    :type source_file: str
+    :param destination_file: Output path for destination mapping JSON.
+    :type destination_file: str
     """
     logging.info("Building Source Query/Table Mapping")
     source = get_source_mapping_data(mapping_file)
@@ -115,7 +287,12 @@ def build_mapping_data(mapping_file, source_file, destination_file):
 
 def drop_role(database):
     """
-    tba
+     Drops the PostgreSQL role associated with the target database.
+
+    :param database: Name of the database whose role should be dropped.
+    :type database: str
+    :return: ``True`` if the role was dropped successfully.
+    :rtype: bool
     """
     logging.info(f"Dropping role: {config("DB_ROLE")}.")
     success = drop_pg_role(database, use_admin=True)
@@ -125,7 +302,12 @@ def drop_role(database):
 
 def drop_database(database) -> bool:
     """
-    tba
+     Drops the specified PostgreSQL database.
+
+    :param database: Name of the database to drop.
+    :type database: str
+    :return: ``True`` if the database was dropped successfully.
+    :rtype: bool
     """
     logging.info(f"Dropping database: {database}.")
     success = drop_pg_database(database)
@@ -137,19 +319,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Set ETL options")
 
     parser.add_argument(
-        "-d",
-        "--database",
-        type=str,
-        required=True,
-        help="Database Name"
+        "-d", "--database", type=str, required=True, help="Database Name"
     )
 
     parser.add_argument(
-        "-s",
-        "--seed-test-database",
-        type=str,
-        required=True,
-        help="Seed Test Database"
+        "-s", "--seed-test-database", type=str,
+        required=True, help="Seed Test Database"
     )
 
     args = parser.parse_args()

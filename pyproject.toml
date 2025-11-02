@@ -1,7 +1,7 @@
 [project]
 name = "python-etl-sql-postgres"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "Python Demo ETL Pipeline: SQL Server to PostgreSQL"
 authors = [
     {name = "kimberly-emerson", email = "kimberly.emerson@outlook.com"},
 ]
