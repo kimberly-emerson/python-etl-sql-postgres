@@ -1,12 +1,13 @@
 """
 """
 
-import logging
 import json
+
+from utils.logger import logging
 from utils.validation import validate_list
 
 
-def read_json_file(name: str, file: str):   
+def read_json_file(name: str, file: str):
     """
     tba
     """
@@ -17,7 +18,7 @@ def read_json_file(name: str, file: str):
     try:
         # load json data from file into queries variable
         queries = load_json_file(file)
-        
+
         # test if queries variable is empty
         if queries:
             logging.info(f"SUCCESS: {name} JSON file read.")
@@ -39,8 +40,9 @@ def read_json_file(name: str, file: str):
 
 def load_json_file(file: str):
     """
+    tba
     """
-    
+
     # instantiate data list variable
     data: list = list()
 
@@ -98,7 +100,7 @@ def get_query_list_from_file(name: str, queries: str):
         for query in queries:
             # append create query to query_list variable
             query_list.append((int(query['table_id']), query[f'{name}']))
-            
+
             logging.info(f"SUCCESS: {query[f'{name}']} added to query list.")
 
     except Exception as e:  # pylint: disable=broad-except

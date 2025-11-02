@@ -1,4 +1,4 @@
-CREATE DATABASE aw_sales
+CREATE DATABASE $database
     WITH
     OWNER = postgres
     ENCODING = 'UTF8'

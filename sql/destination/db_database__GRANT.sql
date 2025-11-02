@@ -1,2 +1,2 @@
-GRANT ALL ON DATABASE aw_sales TO postgres;
-GRANT CONNECT ON DATABASE aw_sales TO etl_user;
+GRANT ALL ON DATABASE $database TO postgres;
+GRANT CONNECT ON DATABASE $database TO etl_user;

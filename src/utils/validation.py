@@ -1,4 +1,5 @@
-import logging
+from utils.logger import logging
+
 
 def validate_list(name, list: list):
     """

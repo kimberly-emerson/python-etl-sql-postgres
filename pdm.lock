@@ -5,10 +5,20 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:ef5dd221abe6d0f088383e7cdc013402de2707f0d2b148dbf1dbbbd59355e1ba"
+content_hash = "sha256:d097609e8642a7f1308ff129f8dcfe2f47dbc11009b560ea6d8492f5c3491070"
 
 [[metadata.targets]]
 requires_python = "==3.14.*"
+
+[[package]]
+name = "argparse"
+version = "1.4.0"
+summary = "Python command-line parsing library"
+groups = ["default"]
+files = [
+    {file = "argparse-1.4.0-py2.py3-none-any.whl", hash = "sha256:c31647edb69fd3d465a847ea3157d37bed1f95f19760b11a47aa91c04b666314"},
+    {file = "argparse-1.4.0.tar.gz", hash = "sha256:62b089a55be1d8949cd2bc7e0df0bddb9e028faefc8c32038cc84862aefdd6e4"},
+]
 
 [[package]]
 name = "black"
@@ -216,6 +226,16 @@ dependencies = [
 files = [
     {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
     {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[[package]]
+name = "python-decouple"
+version = "3.8"
+summary = "Strict separation of settings from code."
+groups = ["default"]
+files = [
+    {file = "python-decouple-3.8.tar.gz", hash = "sha256:ba6e2657d4f376ecc46f77a3a615e058d93ba5e465c01bbe57289bfb7cce680f"},
+    {file = "python_decouple-3.8-py3-none-any.whl", hash = "sha256:d0d45340815b25f4de59c974b855bb38d03151d81b037d9e3f463b0c9f8cbd66"},
 ]
 
 [[package]]

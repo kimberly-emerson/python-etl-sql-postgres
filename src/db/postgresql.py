@@ -1,26 +1,28 @@
 """
 tba
 """
-import os
-import logging
 from string import Template
 from psycopg2 import connect, IntegrityError, OperationalError, Error
 from psycopg2.extras import execute_batch
+from decouple import config
+
+from utils.logger import logging
 from utils.file_handler import read_query_from_file
 
-DESTINATION_PATH = f"{os.getenv("SQL_PATH")}\\destination"
+DESTINATION_PATH = f"{config("SQL_PATH")}\\destination"
 
 
-def execute_pg_query(conn, query: str, values: list = []):
+def execute_pg_query(conn, database, query: str, values: list = []):
     """
     tba
     """
     success: bool = False
 
     if conn is None:
-        # set connection to postgres - default administrative connection database
-        conn = set_pg_connection()
-    
+        # set connection to postgres
+        # default administrative connection database
+        conn = set_pg_connection(database)
+
     # create cursor
     cursor = conn.cursor()
 
@@ -37,7 +39,7 @@ def execute_pg_query(conn, query: str, values: list = []):
         if query.endswith("  PASSWORD 'demopass';"):
             query = query.replace("  PASSWORD 'demopass';",";")
 
-        logging.info(f"SUCCESS: {query}")
+        logging.info(f"SUCCESS: query executed successfully.")
         success = True
 
         conn.commit()
@@ -59,7 +61,7 @@ def execute_pg_query(conn, query: str, values: list = []):
 
     except Exception as e:
         if conn:
-            conn.rollback() 
+            conn.rollback()
         logging.error(e)
 
     finally:
@@ -70,34 +72,20 @@ def execute_pg_query(conn, query: str, values: list = []):
     return success
 
 
-def set_pg_connection(database: str = None):
+def set_pg_connection(database, use_admin=False):
     """
     tba
     """
-    
-    conn = None
 
     try:
-
-        match database:
-            case "aw_sales":
-                conn = connect(
-                    host=os.getenv("POSTGRESQL_HOSTNAME"),
-                    port=os.getenv("POSTGRESQL_PORT"),
-                    database=os.getenv("AW_SALES_DB_NAME"),
-                    user=os.getenv("POSTGRES_DB_USERNAME"),
-                    password=os.getenv("POSTGRES_DB_PASSWORD"),
-                )
-                conn.autocommit = True
-            case _:
-                conn = connect(
-                    host=os.getenv("POSTGRESQL_HOSTNAME"),
-                    port=os.getenv("POSTGRESQL_PORT"),
-                    database=os.getenv("POSTGRES_DB_NAME"),
-                    user=os.getenv("POSTGRES_DB_USERNAME"),
-                    password=os.getenv("POSTGRES_DB_PASSWORD"),
-                )
-                conn.autocommit = True
+        conn = connect(
+            host=config("POSTGRESQL_HOSTNAME"),
+            port=config("POSTGRESQL_PORT"),
+            database=config("POSTGRES_DB_NAME") if use_admin else database,
+            user=config("POSTGRES_DB_USERNAME"),
+            password=config("POSTGRES_DB_PASSWORD"),
+        )
+        conn.autocommit = True
 
     except OperationalError as error:
         logging.error(f"FAILURE: {error}")
@@ -110,7 +98,7 @@ def set_pg_connection(database: str = None):
     return conn
 
 
-def build_pg_database():
+def build_pg_database(database):
     """
     tba
     """
@@ -122,36 +110,32 @@ def build_pg_database():
     role_grant_path = f"{DESTINATION_PATH}\\db_role__GRANT.sql"
 
     # create database
-    pg_build(path=db_create_path, database=None)
+    success = pg_build(path=db_create_path, database=database, use_admin=True)
     # create role
-    pg_build(path=role_create_path, database=None)
+    if "_test" not in database:
+        pg_build(path=role_create_path, database=database, use_admin=True)
     # grant database permissions
-    pg_build(path=db_grant_path, database=None)
+    success = pg_build(path=db_grant_path, database=database, use_admin=True)
     # create database schemas
-    pg_build(path=schemas_create_path, database="aw_sales")
+    success = pg_build(path=schemas_create_path, database=database, use_admin=False)
     # grant permissions on database tables and schemas
-    pg_build(path=role_grant_path, database="aw_sales")
-    logging.info("SUCCESS: Database build completed.")
+    success = pg_build(path=role_grant_path, database=database, use_admin=False)
+    logging.info(f"SUCCESS: {database} Database build completed.")
+
+    return success
 
 
-def drop_pg_database():
+def drop_pg_role(database, use_admin):
     """
     tba
     """
-
-    success: bool = False
-
-    db_drop_path = f"{DESTINATION_PATH}\\db_database__DROP.sql"
-    role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
+    success = False
 
     try:
-        
-        # drop database
-        pg_build(path=db_drop_path, database=None)
+        role_drop_path = f"{DESTINATION_PATH}\\db_role__DROP.sql"
         # drop role
-        pg_build(path=role_drop_path, database=None)
-
-        logging.info("SUCCESS: Database drop completed.")
+        pg_build(path=role_drop_path, database=database, use_admin=use_admin)
+        success = True
 
     except Exception as e:
         logging.error(e)
@@ -159,7 +143,23 @@ def drop_pg_database():
     return success
 
 
-def pg_build(path: str, database: str):
+def drop_pg_database(database):
+    """
+    tba
+    """
+    success = False
+    try:
+        # drop database
+        query = f"DROP DATABASE IF EXISTS {database} WITH (FORCE);"
+        execute_pg_query(conn=None, database="postgres", query=query, values=[])
+        success = True
+    except Exception as e:
+        logging.error(e)
+
+    return success
+
+
+def pg_build(path: str, database: str, use_admin: bool):
     """
     tba
     """
@@ -167,18 +167,23 @@ def pg_build(path: str, database: str):
     success: bool = False
 
     try:
-        
+
         query: str = read_query_from_file(path)
+
+        if '$database' in query:
+            query = Template(query).substitute(
+                database=database,
+            )
 
         if '$password' in query:
             query = Template(query).substitute(
-                password =  os.getenv("AW_SALES_DB_PASSWORD"),
+                password=config("DB_ROLE_PASSWORD"),
             )
-        
-        conn = set_pg_connection(database)
-        
-        success = execute_pg_query(conn, query)
-    
+
+        conn = set_pg_connection(database, use_admin)
+
+        success = execute_pg_query(conn, database, query)
+
     except Exception as e:  # pylint: disable=broad-except
         logging.error(e)
 
