@@ -12,8 +12,8 @@ This repository contains a modular ETL framework for provisioning PostgreSQL dat
   config:
     theme: base
     themeVariables:
-      primaryColor: "#000"
-      primaryTextColor: "#fff"
+      background: "#fff"
+      fontColor: "#000"
 ---
 sequenceDiagram
     autonumber
@@ -50,6 +50,7 @@ sequenceDiagram
     ETL->>PG: Execute INSERT queries (test, if seeded)
 
     ETL-->>CLI: ETL completed
+    
 ```
 
 The ETL pipeline processes data across 35 distinct tables, resulting in a total of 485,625 rows extracted, transformed, and loaded into the destination system. The volume reflects a moderately complex schema with substantial row-level operations, suitable for analytics, reporting, or downstream integration.
