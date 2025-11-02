@@ -10,11 +10,10 @@ This repository contains a modular ETL framework for provisioning PostgreSQL dat
 ```mermaid
 ---
   config:
-    theme: default
-    look: neo
+    theme: base
     themeVariables:
-      background: #FFFFFF,
-      fontColor: #000000
+      primaryColor: "#000"
+      primaryTextColor: "#fff"
 ---
 sequenceDiagram
     autonumber
