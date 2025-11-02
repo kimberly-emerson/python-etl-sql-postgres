@@ -1,16 +1,15 @@
 # SQL Server Connection String
-ADVENTUREWORKS_DB="DRIVER={ODBC Driver 17 for SQL Server};SERVER=[Server];DATABASE=[Database];Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes"
+ADVENTUREWORKS_DB="DRIVER={ODBC Driver 17 for SQL Server};SERVER=[SERVER];DATABASE=[DATABASE];Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes"
 
 # PostgreSQL Connection Properties
 POSTGRESQL_HOSTNAME=localhost
-POSTGRESQL_PORT=5432
-POSTGRES_DB_NAME=[db_name]
-POSTGRES_DB_USERNAME=[pg_db_username]
-POSTGRES_DB_PASSWORD=[pg_db_password]
-AW_SALES_DB_NAME=[db_name]
-AW_SALES_DB_USERNAME=[db_username]
-AW_SALES_DB_PASSWORD=[db_password]
-AW_SALES_DB_BUILD=1
+POSTGRESQL_PORT=[port]
+POSTGRES_DB_NAME=[database_name]
+POSTGRES_DB_USERNAME=[db_username]
+POSTGRES_DB_PASSWORD=[db_password]
+DB_ROLE=[role]
+DB_ROLE_PASSWORD=[role_password]
+TEST_DB_PASSWORD=[test_db_password]
 
 # Paths
 ROOT_PATH=C:\demos\python-etl-sql-postgres
