@@ -1,133 +1,86 @@
 """
-Source Data Extraction Module
-=============================
+Module: get_source_data
+=======================
 
-This module orchestrates the extraction of source data from SQL Server using
-query metadata defined in a JSON mapping file. It integrates file handling,
-query execution, and validation to support dynamic ETL workflows.
+This module provides functionality to extract and validate source data from
+SQL query files defined in a JSON mapping configuration. It reads query
+definitions, executes them against a SQL Server database, and returns the
+aggregated results for downstream processing.
 
-Overview
+Dependencies:
+-------------
+- db.sql_server: Executes SQL queries using a default connection.
+- utils.file_handler: Handles reading of JSON and SQL files.
+- utils.logging_handler: Provides structured logging.
+- utils.validation_handler: Validates data structures post-query execution.
+- decouple.config: Loads environment-specific configuration values.
+
+Environment Variables:
+----------------------
+- SQL_PATH: Base path to the directory containing SQL source query files.
+
+Usage:
+------
+This module is typically used in ETL pipelines or data ingestion workflows
+where source queries are modularized and defined externally in JSON format.
+
+Example:
 --------
-
-The module performs the following operations:
-
-- Loads a JSON mapping file containing source query metadata.
-- Extracts and reads SQL select statements from disk.
-- Executes each query against SQL Server.
-- Aggregates results into a structured list.
-- Validates the final dataset and logs progress.
-
-Environment Configuration
--------------------------
-
-- ``SQL_PATH``: Environment variable used to construct the path to source SQL
-files.
-
-Dependencies
-------------
-
-- ``logging``: Standard Python logging module.
-- ``decouple.config``: For environment variable access.
-- ``db.sql_server``:
-  - ``execute_sql_query``: Executes SQL queries against SQL Server.
-- ``utils.file_handler``:
-  - ``read_json_file``: Loads JSON mappings.
-  - ``get_query_list_from_file``: Extracts query metadata.
-  - ``read_query_from_file``: Reads SQL query text from file.
-- ``utils.validation.validate_list``: Validates that the final data list is
-non-empty.
-
-Constants
----------
-
-- ``SOURCE_PATH``: Constructed from ``SQL_PATH`` and used to locate source SQL
-files.
-
-Functions
----------
-
-.. function:: get_source_data(file: str = None)
-
-   Extracts source data from SQL Server using query metadata from a JSON
-   mapping file.
-
-   :param file: Path to the JSON file containing source query metadata.
-   :type file: str, optional
-   :return: List of tuples containing table ID and query results.
-   :rtype: list[tuple[int, Any]]
-
-   **Execution Flow:**
-
-   - Loads the JSON mapping file using ``read_json_file``.
-   - Extracts select query metadata using ``get_query_list_from_file``.
-   - Iterates over each source table:
-     - Constructs the full path to the SQL select file.
-     - Reads the SQL query using ``read_query_from_file``.
-     - Executes the query using ``execute_sql_query``.
-     - Appends the result to the data list.
-   - Validates the final data list using ``validate_list``.
-
-   **Logging Behavior:**
-
-   - Logs a warning if a query file is missing or empty.
-   - Logs an error if the JSON file is not found or if any exception occurs
-   during execution.
-   - Logs success if the data list is populated.
-
-   **Example Usage:**
-
-   .. code-block:: python
-
-      data = get_source_data(file="mappings/mapping_source.json")
+    success, data = get_source_data("mapping_source.json")
+    if success:
+        process(data)
 """
 
-import logging
+from typing import Tuple
 from decouple import config
 
-from db.sql_server import execute_sql_query
-from utils.file_handler import (
-    read_json_file,
-    read_query_from_file,
-    get_query_list_from_file,
-)
-from utils.validation import validate_list
+import db.sql_server as sqldb
+import utils.file_handler as fh
+from utils.logging_handler import logger as log
+import utils.validation_handler as vh
+
 
 SOURCE_PATH = f"{config("SQL_PATH")}\\source"
 
 
-def get_source_data(file: str = None):
+def get_source_data(file: str = None) -> Tuple[bool, list]:
     """
-     Extracts source data from SQL Server using query metadata from a JSON
+    Extracts and validates source data from SQL query files defined in a JSON
     mapping file.
 
-    :param file: Path to the JSON file containing source query metadata.
-    :type file: str, optional
-    :return: List of tuples containing table ID and query results.
-    :rtype: list[tuple[int, Any]]
+    This function reads a JSON file containing metadata about source tables
+    and their associated SQL query filenames. It loads each query, executes it
+    using the default SQL Server connection, and aggregates the results into a
+    list. Each query result is validated before inclusion.
 
-    **Execution Flow:**
+    Parameters:
+    -----------
+    file : str, optional
+        The filename of the JSON mapping file (e.g., 'mapping_source.json').
+        If not provided, the default path will be used by the file handler.
 
-    - Loads the JSON mapping file using ``read_json_file``.
-    - Extracts select query metadata using ``get_query_list_from_file``.
-    - Iterates over each source table:
-      - Constructs the full path to the SQL select file.
-      - Reads the SQL query using ``read_query_from_file``.
-      - Executes the query using ``execute_sql_query``.
-      - Appends the result to the data list.
-    - Validates the final data list using ``validate_list``.
+    Returns:
+    --------
+    Tuple[bool, list]
+        A tuple containing:
+        - success (bool): True if all queries executed and validated
+        successfully.
+        - data (list): A list of query result sets, one per source table.
 
-    **Logging Behavior:**
+    Raises:
+    -------
+    FileNotFoundError:
+        If any referenced SQL query file is missing or unreadable.
 
-    - Logs a warning if a query file is missing or empty.
-    - Logs an error if the JSON file is not found or if any exception occurs
-    during execution.
-    - Logs success if the data list is populated.
+    ValueError:
+        If the JSON mapping file is malformed or contains invalid entries.
 
-    **Example Usage:**
-
-    .. code-block:: python
-
-       data = get_source_data(file="mappings/mapping_source.json")
+    Notes:
+    ------
+    - Query files must be located in the directory defined by the SQL_PATH
+    environment variable.
+    - Each query file must return a valid SQL SELECT statement.
+    - Logging is performed at each step for traceability and debugging.
     """
 
     success = False
@@ -137,41 +90,50 @@ def get_source_data(file: str = None):
 
     try:
         # read mapping_source.json file
-        queries = read_json_file("Mapping Source", file)
-
+        success, queries = fh.read_json_file("Mapping Source", file)
+        queries.sort(key=lambda x: int(x['table_id']))
         # test if queries is not empty
-        if queries[0]:
+        if success:
 
-            # get source query file list
-            query_list = get_query_list_from_file("source_query_select", queries[1])
-
-            for table in query_list[1]:
+            for table in queries:
 
                 # construct full path to source query file
-                file = f"{SOURCE_PATH}\\{table[1]}"
+                item = table['source_query_select']
+                path = f"{SOURCE_PATH}\\{item}"
+                index = path.rfind('\\')+1
 
                 # read query from file
-                query = read_query_from_file(file)
+                success, query = fh.read_query_from_file(path)
 
                 # handle empty/missing query file
-                if not query:
-
-                    logging.warning(f"{file} does not return a query.")
+                if not success:
+                    log.error(f"🔴 FAILED: {path[index:].strip()} does not \
+                              return a query.")
                     raise FileNotFoundError
 
                 # execute query using default postgres connection
-                response = execute_sql_query(conn=None, query=query)
+                success, response = sqldb.execute_sql_query(
+                    conn=None,
+                    query=query
+                )
 
-                # add query result to data list
-                data.append((table[0], response))
+                if success:
+                    # add query result to data list
+                    data.append((response))
 
-    except FileNotFoundError as error:
-        logging.error(error)
+                success = False
+                success = vh.validate_list("Source Data", data)
+
+                if success:
+                    log.info(f"🟢 SUCCESS: {path[index:]} executed.")
+                else:
+                    log.error(f"🔴 FAILED: {path[index:]} not executed.")
+
+            # return success bool and data list containing source data
+            return success, data
+
+    except (ValueError, FileNotFoundError) as error:
+        log.error(error, exc_info=True)
 
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    success = validate_list("Source Data", data)
-
-    # return data list containing source data
-    return data
+        log.error(e, exc_info=True)

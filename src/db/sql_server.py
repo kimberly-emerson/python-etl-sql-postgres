@@ -1,130 +1,98 @@
 """
-SQL Server Query Execution Module
-=================================
+Module: sql_server
+==================
 
-This module provides a utility function for executing SQL queries against a
-SQL Server database using `pyodbc`. It supports dynamic connection handling,
-result parsing, and structured error logging.
-
-Overview
+Purpose:
 --------
+Provides a utility function to execute SQL Server queries using pyodbc and
+environment-based connection strings.
 
-The module performs the following operations:
+Key Features:
+-------------
+- Dynamically establishes a SQL Server connection if none is provided
+- Executes arbitrary SQL queries and returns results as a list of lists
+- Handles database errors with rollback and structured logging
+- Ensures connection closure and transactional integrity
 
-- Establishes a connection to SQL Server using an environment-defined DSN.
-- Executes a SQL query and fetches all results.
-- Converts query results into a list of row-wise lists.
-- Commits transactions and handles rollback on error.
-- Logs query failures and connection issues.
+Environment Variables Required:
+-------------------------------
+- SQLSERVER_CONN : ODBC connection string for SQL Server
 
-Environment Configuration
--------------------------
+Dependencies:
+-------------
+- pyodbc : Python ODBC interface for SQL Server
+- python-decouple : For secure environment variable management
+- utils.logging_handler : Custom logger for error tracking
 
-- ``SQL_PATH``: Used for locating SQL assets or scripts (not directly used in
-this function).
-- ``ADVENTUREWORKS_DB``: ODBC connection string or DSN for the target SQL
-Server database.
-
-Dependencies
-------------
-
-- ``logging``: Standard Python logging module.
-- ``decouple.config``: For environment variable access.
-- ``pyodbc.connect``: For establishing SQL Server connections.
-
-Functions
----------
-
-.. function:: execute_sql_query(conn, query: str = None)
-
-   Executes a SQL query against a SQL Server database and returns the results.
-
-   :param conn: Optional active database connection. If ``None``, a new
-   connection is created using the ``ADVENTUREWORKS_DB`` environment variable.
-   :type conn: pyodbc.Connection or None
-   :param query: SQL query string to be executed.
-   :type query: str
-   :return: List of rows, where each row is a list of column values.
-   :rtype: list[list[Any]]
-
-   **Execution Flow:**
-
-   - If no connection is provided, a new one is created using the configured
-   DSN.
-   - Executes the query and fetches all rows.
-   - Converts each row to a list and appends to the result set.
-   - Commits the transaction and closes the cursor.
-   - Rolls back and logs errors on failure.
-   - Closes the connection in all cases.
-
-   **Logging Behavior:**
-
-   - Logs the query and error message on `DatabaseError`.
-   - Logs generic errors on `Error`.
-   - Ensures rollback and connection closure on failure.
-
-   **Example Usage:**
-
-   .. code-block:: python
-
-      results = execute_sql_query(
-          conn=None,
-          query="SELECT TOP 10 * FROM Sales.SalesOrderHeader"
-      )
+Example Usage:
+--------------
+    success, results = execute_sql_query(None, "SELECT * FROM employees")
+    if success:
+        # Process results
 """
 
-import logging
+from typing import Tuple
 from decouple import config
 from pyodbc import connect, DatabaseError, Error
 
+from utils.logging_handler import logger as log
 
-SQL_PATH = config("SQL_PATH")
 
-
-def execute_sql_query(conn, query: str = None):
+def execute_sql_query(conn, query: str = None) -> Tuple[bool, list]:
     """
-     Executes a SQL query against a SQL Server database and returns the results.
+    Executes a SQL query against a SQL Server database using pyodbc.
 
-    :param conn: Optional active database connection. If ``None``, a new
-    connection is created using the ``ADVENTUREWORKS_DB`` environment variable.
-    :type conn: pyodbc.Connection or None
-    :param query: SQL query string to be executed.
-    :type query: str
-    :return: List of rows, where each row is a list of column values.
-    :rtype: list[list[Any]]
+    Parameters:
+    ----------
+    conn : pyodbc.Connection or None
+        An existing database connection. If None, a new connection is created
+        using the environment variable `SQLSERVER_CONN`.
+    query : str, optional
+        The SQL query string to execute. Defaults to None.
 
-    **Execution Flow:**
+    Returns:
+    -------
+    Tuple[bool, list]
+        A tuple containing:
+        - success (bool): True if query execution returned rows, False
+        otherwise
+        - data (list): List of rows returned from the query, each row as a
+        list of column values
 
-    - If no connection is provided, a new one is created using the configured
-    DSN.
-    - Executes the query and fetches all rows.
-    - Converts each row to a list and appends to the result set.
-    - Commits the transaction and closes the cursor.
-    - Rolls back and logs errors on failure.
-    - Closes the connection in all cases.
+    Exceptions:
+    ----------
+    DatabaseError:
+        Raised for SQL Server-specific errors. Rolls back transaction and logs
+        the error.
+    Error:
+        Raised for general pyodbc errors. Rolls back transaction and logs the
+        error.
 
-    **Logging Behavior:**
+    Logging:
+    -------
+    - Logs query-level errors with traceback using the custom logger
+    - Includes query string in error logs for debugging
 
-    - Logs the query and error message on `DatabaseError`.
-    - Logs generic errors on `Error`.
-    - Ensures rollback and connection closure on failure.
+    Notes:
+    ------
+    - Commits transaction after successful query execution
+    - Closes cursor and connection in all cases (success, error, or exception)
 
-    **Example Usage:**
-
-    .. code-block:: python
-
-       results = execute_sql_query(
-           conn=None,
-           query="SELECT TOP 10 * FROM Sales.SalesOrderHeader"
-       )
+    Example:
+    -------
+    >>> success, rows = execute_sql_query(None, "SELECT TOP 10 * FROM orders")
+    >>> if success:
+    >>>     for row in rows:
+    >>>         print(row)
     """
 
-    rows = list()
-    data = list()
+    success: bool = False
+    rows: list = list()
+    data: list = list()
 
     try:
         if conn is None:
-            conn = connect(config("ADVENTUREWORKS_DB"))
+            conn = connect(config("SQLSERVER_CONN"))
 
         cursor = conn.cursor()
         cursor.execute(query)
@@ -136,18 +104,23 @@ def execute_sql_query(conn, query: str = None):
         conn.commit()
         cursor.close()
 
+        if data:
+            success = True
+
+        return success, data
+
     except DatabaseError as error:
         if conn:
             conn.rollback()
-            logging.error(f"QUERY: {query}, {error}")
+            log.error(f"🔴 ERROR: Query {query}, {error}",
+                      exc_info=True)
 
     except Error as error:
         if conn:
             conn.rollback()
-            logging.error(error)
+            log.error(f"🔴 ERROR: {error}",
+                      exc_info=True)
 
     finally:
         if conn:
             conn.close()
-
-    return data

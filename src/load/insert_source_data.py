@@ -1,151 +1,96 @@
 """
-PostgreSQL Table Insertion Module
-=================================
+Module: insert_source_data
+==========================
 
-This module automates the execution of PostgreSQL insert queries based on a
-JSON mapping file and a list of source data. It integrates file handling,
-query execution, and logging to support dynamic ETL workflows.
+This module handles the insertion of structured data into PostgreSQL tables
+using parameterized SQL queries defined in a JSON mapping file. It reads query
+templates, binds data values, and executes inserts against a target database.
 
-Overview
+Dependencies:
+-------------
+- db.postgresql: Manages PostgreSQL connection setup.
+- db.postgresql_queries: Executes parameterized SQL insert operations.
+- utils.file_handler: Loads JSON mappings and reads SQL query files.
+- utils.logging_handler: Provides structured logging for success and error
+tracking.
+- decouple.config: Loads environment-specific configuration values.
+
+Environment Variables:
+----------------------
+- SQL_PATH: Base path to the directory containing SQL destination query files.
+
+Usage:
+------
+This module is typically used in ETL workflows or data migration pipelines
+where data must be inserted into PostgreSQL tables based on external query
+templates.
+
+Example:
 --------
-
-The module performs the following operations:
-
-- Loads a JSON mapping file containing destination query metadata.
-- Extracts and reads SQL insert statements from disk.
-- Filters source data by table ID.
-- Executes parameterized insert queries against a PostgreSQL database.
-- Logs progress and errors throughout the process.
-
-Environment Configuration
--------------------------
-
-- ``SQL_PATH``: Environment variable used to construct the path to destination
-SQL files.
-
-Dependencies
-------------
-
-- ``logging``: Standard Python logging module.
-- ``decouple.config``: For environment variable access.
-- ``db.postgresql``:
-  - ``set_pg_connection``: Establishes a PostgreSQL connection.
-  - ``execute_pg_query``: Executes parameterized SQL queries.
-- ``utils.file_handler``:
-  - ``load_json_file``: Loads JSON mappings.
-  - ``get_query_list_from_file``: Extracts query metadata.
-  - ``read_query_from_file``: Reads SQL query text from file.
-
-Constants
----------
-
-- ``DESTINATION_PATH``: Constructed from ``SQL_PATH`` and used to locate
-insert query files.
-
-Functions
----------
-
-.. function:: insert_pg_tables(database: str, file: str, data: list)
-
-   Executes PostgreSQL insert queries using metadata from a JSON mapping file.
-
-   :param database: Name of the PostgreSQL database to connect to.
-   :type database: str
-   :param file: Path to the JSON file containing destination query metadata.
-   :type file: str
-   :param data: List of tuples where each tuple contains a table ID and
-   associated values.
-   :type data: list[tuple[int, list]]
-
-   :return: ``True`` if at least one insert query was executed successfully,
-   otherwise ``False``.
-   :rtype: bool
-
-   **Execution Flow:**
-
-   - Loads the JSON mapping file using ``load_json_file``.
-   - Extracts insert query metadata using ``get_query_list_from_file``.
-   - Iterates over each destination table:
-     - Filters the source data by table ID.
-     - Constructs the full path to the SQL insert file.
-     - Reads the SQL query using ``read_query_from_file``.
-     - Executes the query using ``execute_pg_query`` with the filtered values.
-   - Logs each step and prints the name of each executed file.
-
-   **Logging Behavior:**
-
-   - Logs a warning if a query file is missing or empty.
-   - Logs an error if the JSON file is not found or if any exception occurs
-   during execution.
-   - Logs a success message for each executed insert query.
-
-   **Example Usage:**
-
-   .. code-block:: python
-
-      success = insert_pg_tables(
-          database="analytics_db",
-          file="mappings/mapping_destination.json",
-          data=[(101, [("val1", "val2")]), (102, [("val3", "val4")])]
-      )
+    success = insert_pg_tables(
+        database="analytics_db",
+        file="mapping_destination.json",
+        data=transformed_data
+    )
+    if success:
+        log.info("All destination inserts completed successfully.")
 """
 
-import logging
 from decouple import config
 
-from db.postgresql import execute_pg_query, set_pg_connection
-from utils.file_handler import (
-    get_query_list_from_file,
-    load_json_file,
-    read_query_from_file,
-)
+import db.postgresql as pgdb
+import db.postgresql_queries as q
+import utils.file_handler as fh
+from utils.logging_handler import logger as log
+
 
 DESTINATION_PATH = f"{config("SQL_PATH")}\\destination"
 
 
-def insert_pg_tables(database: str, file: str, data: list):
+def insert_pg_tables(database: str, file: str, data: list) -> bool:
     """
-     Executes PostgreSQL insert queries using metadata from a JSON mapping file.
+    Inserts data into PostgreSQL tables using SQL queries defined in a JSON
+    mapping file.
 
-    :param database: Name of the PostgreSQL database to connect to.
-    :type database: str
-    :param file: Path to the JSON file containing destination query metadata.
-    :type file: str
-    :param data: List of tuples where each tuple contains a table ID and
-    associated values.
-    :type data: list[tuple[int, list]]
+    This function reads a destination mapping file that specifies table IDs
+    and associated SQL insert query filenames. It loads each query, binds the
+    corresponding data values, and executes the insert operation using a
+    PostgreSQL connection.
 
-    :return: ``True`` if at least one insert query was executed successfully,
-    otherwise ``False``.
-    :rtype: bool
+    Parameters:
+    -----------
+    database : str
+        The name of the target PostgreSQL database.
 
-    **Execution Flow:**
+    file : str
+        The filename of the JSON mapping file ('mapping_destination.json') 
+        that defines the insert query files and table IDs.
 
-    - Loads the JSON mapping file using ``load_json_file``.
-    - Extracts insert query metadata using ``get_query_list_from_file``.
-    - Iterates over each destination table:
-      - Filters the source data by table ID.
-      - Constructs the full path to the SQL insert file.
-      - Reads the SQL query using ``read_query_from_file``.
-      - Executes the query using ``execute_pg_query`` with the filtered values.
-    - Logs each step and prints the name of each executed file.
+    data : list
+        A list of data payloads to be inserted. Each item corresponds to a
+        table ID defined in the mapping file.
 
-    **Logging Behavior:**
+    Returns:
+    --------
+    bool
+        True if all insert operations succeed; False if any query fails or an
+        exception occurs.
 
-    - Logs a warning if a query file is missing or empty.
-    - Logs an error if the JSON file is not found or if any exception occurs
-    during execution.
-    - Logs a success message for each executed insert query.
+    Raises:
+    -------
+    FileNotFoundError:
+        If any referenced SQL query file is missing or unreadable.
 
-    **Example Usage:**
+    Exception:
+        For any unexpected errors during query execution or connection setup.
 
-    .. code-block:: python
-
-       success = insert_pg_tables(
-           database="analytics_db",
-           file="mappings/mapping_destination.json",
-           data=[(101, [("val1", "val2")]), (102, [("val3", "val4")])]
-       )
+    Notes:
+    ------
+    - Query files must be located in the directory defined by the SQL_PATH
+    environment variable.
+    - Each query file must contain a valid parameterized SQL INSERT statement.
+    - Logging is performed for each query execution to aid in debugging and
+    traceability.
     """
 
     # instantiate success boolean variable to be returned
@@ -153,50 +98,47 @@ def insert_pg_tables(database: str, file: str, data: list):
 
     try:
         # read mapping_destination.json file
-        queries: tuple = load_json_file(file)
+        success, queries = fh.load_json_file(file)
+        queries.sort(key=lambda x: int(x['table_id']))
 
         # test if queries is not empty
-        if queries[0]:
+        if success:
 
-            # get destination query file list
-            query_list = get_query_list_from_file("destination_query_insert", queries)
-
-            logging.info("------ EXECUTE INSERT SQL SCRIPTS ------")
-
-            for table in query_list[1]:
-
-                # filter source data for destination table
-                values = [t for t in data if t[0] == table[0]]
-
+            for table in queries:
                 # construct full path to destination query file
-                file = f"{DESTINATION_PATH}\\{table[1]}"
+                item = table['destination_query_insert']
+                path = f"{DESTINATION_PATH}\\{item}"
+                index = path.rfind('\\')+1
+                data_index = int(table['table_id'])-1
+                values = data[data_index]
 
                 # read query from file
-                query = read_query_from_file(file)
-
-                # query = query.replace(',)',')')
-                if not query:
-                    logging.warning(f"{file} does not return a query.")
-                    raise FileNotFoundError
+                success, query = fh.read_query_from_file(path)
 
                 # set connection to postgresql database
-                conn = set_pg_connection(database)
+                conn = pgdb.set_pg_connection(database)
 
                 # execute insert query
-                execute_pg_query(
-                    conn, database=database, query=query, values=values[0][1]
+                q.pg_query(
+                    conn,
+                    database=database,
+                    query=query,
+                    values=values
                 )
 
                 # set success variable
                 success = True
 
-                print(f"{file[49:len(file)]} executed.")
+                if success:
+                    log.info(f"🟢 SUCCESS: {path[index:]} executed.")
+                else:
+                    log.error(f"🔴 FAILED: {path[index:]} not executed.")
+
+        # return success boolean
+        return success
 
     except FileNotFoundError as error:
-        logging.error(error)
+        log.error(error, exc_info=True)
 
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    # return success boolean
-    return success
+        log.error(e, exc_info=True)

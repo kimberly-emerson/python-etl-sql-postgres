@@ -1,142 +1,125 @@
 """
-Mapping Data Utilities Module
+Module: query_mapping_handler
 =============================
 
-This module provides functions for reading, filtering, and writing mapping
-data used in query orchestration pipelines. It leverages ``pandas`` for CSV
-ingestion and transformation, and logs errors using a custom logger.
-
-Overview
---------
-
-The module supports:
-
-- Reading source mapping data from CSV files.
-- Reading destination mapping data from CSV files.
-- Writing processed mapping data to JSON format.
+This module provides utilities for reading, filtering, and writing mapping data
+used in ETL workflows or data migration pipelines. It supports structured
+ingestion of source and destination mappings from CSV files and outputs
+validated JSON records for downstream consumption.
 
 Dependencies
 ------------
-
-- ``pandas``: For reading and transforming tabular data.
-- ``utils.logger``: Custom logging configuration.
+- pandas : For DataFrame operations and CSV/JSON I/O.
+- os : For file existence checks.
+- utils.logging_handler.logger : Custom logger for structured error and
+success reporting.
 
 Functions
 ---------
-
-.. function:: get_source_mapping_data(filename)
-
-   Reads source mapping data from a CSV file, filters for application tables,
-   and sorts the result.
-
-   :param filename: Path to the source mapping CSV file.
-   :type filename: str
-   :return: Filtered and sorted DataFrame containing source mapping data.
-   :rtype: pandas.DataFrame
-
-   **Columns expected:**
-
-   - ``source_query_select``
-   - ``table_id``
-   - ``execution_order``
-   - ``is_app_table``
-
-   Logs errors if the file is missing or unreadable.
-
-.. function:: get_destination_mapping_data(filename)
-
-   Reads destination mapping data from a CSV file, filters for application
-   tables, and sorts the result.
-
-   :param filename: Path to the destination mapping CSV file.
-   :type filename: str
-   :return: Filtered and sorted DataFrame containing destination mapping data.
-   :rtype: pandas.DataFrame
-
-   **Columns expected:**
-
-   - ``destination_query_create``
-   - ``destination_query_insert``
-   - ``table_id``
-   - ``execution_order``
-   - ``is_app_table``
-
-   Logs errors if the file is missing or unreadable.
-
-.. function:: write_mapping_data(data, output_filename)
-
-   Writes a DataFrame to a JSON file in record-oriented format.
-
-   :param data: DataFrame containing mapping data.
-   :type data: pandas.DataFrame
-   :param output_filename: Path to the output JSON file.
-   :type output_filename: str
-   :return: None
-
-   Logs errors if the write operation fails.
+- get_source_mapping_data : Extracts and filters source mapping records from a
+CSV file.
+- get_destination_mapping_data : Extracts and filters destination mapping
+records from a CSV file.
+- write_mapping_data : Serializes a DataFrame to JSON and verifies output
+creation.
 """
 
+import os
 import pandas as pd
 
-from utils.logger import logging
+from utils.logging_handler import logger as log
 
 
-def get_source_mapping_data(filename):
+def get_source_mapping_data(filename: str) -> pd.DataFrame:
     """
-    Reads source mapping data from a CSV file, filters for application tables,
-    and sorts the result.
+    Load and filter source mapping data from a CSV file.
 
-    :param filename: Path to the source mapping CSV file.
-    :type filename: str
-    :return: Filtered and sorted DataFrame containing source mapping data.
-    :rtype: pandas.DataFrame
+    This function reads a CSV file containing source mapping definitions,
+    filters for application-specific tables, and returns a sorted DataFrame
+    excluding the `is_app_table` column.
 
-    **Columns expected:**
+    Parameters
+    ----------
+    filename : str
+        Path to the CSV file containing source mapping data.
 
-    - ``source_query_select``
-    - ``table_id``
-    - ``execution_order``
-    - ``is_app_table``
+    Returns
+    -------
+    pd.DataFrame
+        Filtered and sorted DataFrame with columns:
+        - source_query_select
+        - table_id (nullable integer)
+        - execution_order
 
-    Logs errors if the file is missing or unreadable.
+    Logging
+    -------
+    Logs errors if the file is not found or if any exception occurs during
+    processing.
+
+    Example
+    -------
+    >>> get_source_mapping_data("source_mappings.csv")
+    pd.DataFrame([...])
     """
     try:
         # specify columns
-        columns = ["source_query_select", "table_id", "execution_order",
-                   "is_app_table"]
+        columns = [
+            "source_query_select",
+            "table_id",
+            "execution_order",
+            "is_app_table"
+        ]
         # read csv file into dataframe
         df = pd.read_csv(filename, usecols=columns)
+        df['table_id'] = df['table_id'].astype(pd.Int64Dtype())
         # filter data
-        filtered_df = df[df["is_app_table"] == 1]
+        filtered_df = df[df['is_app_table'] == 1]
+        # drop is_app_table column
+        df = filtered_df.drop('is_app_table', axis=1)
         # sort data
-        data = filtered_df.sort_values(by=["execution_order",
-                                           "source_query_select"])
+        data = df.sort_values(by=[
+            'execution_order',
+            'table_id'
+        ])
         return data
+
     except FileNotFoundError as e:
-        logging.error(e)
+        log.error(e)
     except Exception as e:  # pylint disable=broad-except
-        logging.error(e)
+        log.error(e)
 
 
-def get_destination_mapping_data(filename):
+def get_destination_mapping_data(filename: str) -> pd.DataFrame:
     """
-    Reads destination mapping data from a CSV file, filters for application
-    tables, and sorts the result.
+    Load and filter destination mapping data from a CSV file.
 
-    :param filename: Path to the destination mapping CSV file.
-    :type filename: str
-    :return: Filtered and sorted DataFrame containing destination mapping data.
-    :rtype: pandas.DataFrame
+    This function reads a CSV file containing destination mapping definitions,
+    filters for application-specific tables, and returns a sorted DataFrame
+    excluding the `is_app_table` column.
 
-    **Columns expected:**
+    Parameters
+    ----------
+    filename : str
+        Path to the CSV file containing destination mapping data.
 
-    - ``destination_query_create``
-    - ``destination_query_insert``
-    - ``table_id``
-    - ``execution_order``
-    - ``is_app_table``
+    Returns
+    -------
+    pd.DataFrame
+        Filtered and sorted DataFrame with columns:
+        - destination_query_create
+        - destination_query_insert
+        - table_id (nullable integer)
+        - execution_order
 
-    Logs errors if the file is missing or unreadable.
+    Logging
+    -------
+    Logs errors with traceback if the file is not found or if any exception
+    occurs.
+
+    Example
+    -------
+    >>> get_destination_mapping_data("destination_mappings.csv")
+    pd.DataFrame([...])
     """
     try:
         # specify columns
@@ -149,33 +132,64 @@ def get_destination_mapping_data(filename):
         ]
         # read csv file into dataframe
         df = pd.read_csv(filename, usecols=columns)
+        df['table_id'] = df['table_id'].astype(pd.Int64Dtype())
         # filter data
-        filtered_df = df[df["is_app_table"] == 1]
+        filtered_df = df[df['is_app_table'] == 1]
+        # drop is_app_table column
+        df = filtered_df.drop('is_app_table', axis=1)
         # sort data
-        data = filtered_df.sort_values(
-            by=["execution_order", "destination_query_insert"]
+        data = df.sort_values(
+            by=["execution_order", "table_id"]
         )
         return data
     except FileNotFoundError as e:
-        logging.error(e)
+        log.error(e, exc_info=True)
     except Exception as e:  # pylint disable=broad-except
-        logging.error(e)
+        log.error(e, exc_info=True)
 
 
-def write_mapping_data(data, output_filename):
+def write_mapping_data(data: pd.DataFrame, output_filename: str) -> bool:
     """
-    Writes a DataFrame to a JSON file in record-oriented format.
+    Write mapping data to a JSON file and confirm output creation.
 
-    :param data: DataFrame containing mapping data.
-    :type data: pandas.DataFrame
-    :param output_filename: Path to the output JSON file.
-    :type output_filename: str
-    :return: None
+    This function serializes the provided DataFrame to a JSON file using
+    record orientation. It verifies that the file was successfully created
+    and logs a success message with the filename.
 
-    Logs errors if the write operation fails.
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The mapping data to be written to disk.
+    output_filename : str
+        The target filename for the JSON output.
+
+    Returns
+    -------
+    bool
+        True if the file was successfully created, False otherwise.
+
+    Logging
+    -------
+    Logs success with filename if output is created.
+    Logs errors with traceback if any exception occurs.
+
+    Example
+    -------
+    >>> write_mapping_data(df, "output.json")
+    True
     """
+    success = False
+
     try:
         # write mapping data to output filename
         data.to_json(output_filename, orient="records")
+        success = os.path.isfile(output_filename)
+
+        if success:
+            index = output_filename.rfind("\\")+1
+            log.info(f"🟢 SUCCESS: {output_filename[index:].strip()} created.")
+
+        return success
+
     except Exception as e:  # pylint disable=broad-except
-        logging.error(e)
+        log.error(e, exc_info=True)
