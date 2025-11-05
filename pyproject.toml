@@ -13,6 +13,9 @@ dependencies = [
     "black>=25.9.0",
     "argparse>=1.4.0",
     "python-decouple>=3.8",
+    "sphinx>=8.2.3",
+    "sphinx-autodoc-typehints>=3.5.2",
+    "sphinx-rtd-theme>=3.0.2",
 ]
 requires-python = "==3.14.*"
 readme = "README.md"
