@@ -1,144 +1,70 @@
 """
-ETL Orchestration Module
-=========================
+main.py — ETL Orchestration Module
+==================================
 
-This module coordinates a full ETL lifecycle for PostgreSQL databases,
-including schema provisioning, role management, data extraction, and data
-loading. It supports both production and test environments and is designed for
-command-line execution.
+Coordinates a full ETL (Extract, Transform, Load) workflow for PostgreSQL
+databases, including teardown, schema creation, query mapping generation,
+data extraction, and data loading into production and test environments.
 
 Overview
 --------
+This module automates the following ETL stages:
 
-The module performs the following operations:
+- Drops and rebuilds PostgreSQL databases and roles
+- Generates source and destination query mappings from a CSV file
+- Extracts source data using parameterized SQL SELECT queries
+- Loads extracted data into destination tables using INSERT queries
+- Optionally seeds a test database with the same data
 
-- Drops existing databases and roles.
-- Builds query/table mappings from a CSV file.
-- Creates databases, roles, schemas, and tables.
-- Extracts source data from SQL Server.
-- Loads data into PostgreSQL destination tables.
-- Optionally seeds a test database.
+Dependencies
+------------
+The module integrates with the following components:
 
-Environment Configuration
--------------------------
+- ``build.build_destination_database``: PostgreSQL DDL and permission utilities
+- ``extract.get_source_data``: Source data extraction logic
+- ``load.insert_source_data``: Destination data insertion logic
+- ``utils.query_mapping_handler``: Mapping generation from CSV
+- ``utils.logging_handler``: Structured logging
+- ``decouple.config``: Environment variable management
 
-The following environment variables must be defined:
+Environment Variables
+---------------------
+- ``SQL_PATH``: Root directory for query files and mapping CSV
+- ``DB_ROLE``: Role name used for PostgreSQL access control
 
-- ``SQL_PATH``: Base path for SQL assets and mapping files.
-- ``DB_ROLE``: Role name used for PostgreSQL provisioning.
+Execution Steps
+---------------
+1. Drop existing databases and roles
+2. Generate source and destination query mappings
+3. Create databases, roles, schemas, and tables
+4. Extract source data
+5. Load data into destination and optionally test database
 
-File Paths
-----------
-
-- ``MAPPING_FILE``: Path to the CSV file containing table/query mappings.
-- ``SOURCE_FILE``: Path to the generated source mapping JSON file.
-- ``DESTINATION_FILE``: Path to the generated destination mapping JSON file.
-
-Command-Line Interface
-----------------------
-
+Command-Line Usage
+------------------
 .. code-block:: bash
 
-   python main.py --database analytics --seed-test-database true
+    python -m main.py --database sales_db -seed-test-database True
 
-.. argparse::
-   :module: main
-   :func: parser.parse_args
-   :prog: main.py
+This will:
 
-Functions
----------
-
-.. function:: main(args)
-
-   Entry point for the ETL process. Coordinates all steps from teardown to
-   data load.
-
-   :param args: Parsed command-line arguments.
-   :type args: argparse.Namespace
-
-.. function:: drop_database(database) -> bool
-
-   Drops the specified PostgreSQL database.
-
-   :param database: Name of the database to drop.
-   :type database: str
-   :return: ``True`` if the database was dropped successfully.
-   :rtype: bool
-
-.. function:: drop_role(database)
-
-   Drops the PostgreSQL role associated with the target database.
-
-   :param database: Name of the database whose role should be dropped.
-   :type database: str
-   :return: ``True`` if the role was dropped successfully.
-   :rtype: bool
-
-.. function:: build_mapping_data(mapping_file, source_file, destination_file)
-
-   Generates source and destination query mappings from a CSV file and writes
-   them to JSON.
-
-   :param mapping_file: Path to the CSV mapping file.
-   :type mapping_file: str
-   :param source_file: Output path for source mapping JSON.
-   :type source_file: str
-   :param destination_file: Output path for destination mapping JSON.
-   :type destination_file: str
-
-.. function:: build_database(database)
-
-   Creates the database, role, schemas, and grants permissions.
-
-   :param database: Name of the database to build.
-   :type database: str
-
-.. function:: create_database_tables(database, destination_file)
-
-   Executes SQL `CREATE TABLE` scripts for the specified database.
-
-   :param database: Target database name.
-   :type database: str
-   :param destination_file: Path to the destination mapping JSON file.
-   :type destination_file: str
-
-.. function:: extract_source_data(source_file)
-
-   Extracts source data from SQL Server using select queries.
-
-   :param source_file: Path to the source mapping JSON file.
-   :type source_file: str
-   :return: List of tuples containing table ID and query results.
-   :rtype: list[tuple[int, Any]]
-
-.. function:: load_destination_tables(database, destination_file, source_data)
-
-   Loads extracted source data into PostgreSQL destination tables.
-
-   :param database: Target database name.
-   :type database: str
-   :param destination_file: Path to the destination mapping JSON file.
-   :type destination_file: str
-   :param source_data: Extracted source data.
-   :type source_data: list
-   :return: ``True`` if data was loaded successfully.
-   :rtype: bool
+- Drop and rebuild `sales_db` and `sales_db_test`
+- Generate query mappings
+- Extract source data
+- Load destination tables
 """
 
+import sys
+import pandas as pd
 import argparse
 from decouple import config
 
-from db.postgresql import build_pg_database, drop_pg_database, drop_pg_role
-from build.create_destination_tables import create_pg_tables
-from extract.get_source_data import get_source_data
-from load.insert_source_data import insert_pg_tables
-from utils.logger import logging
-from utils.query_mapping_handler import (
-    get_source_mapping_data,
-    get_destination_mapping_data,
-    write_mapping_data,
-)
+import build.build_destination_database as pgdb
+import extract.get_source_data as srcdata
+import load.insert_source_data as dest
+from utils.logging_handler import logger as log
+import utils.query_mapping_handler as qmh
+
 
 SQL_PATH = config("SQL_PATH")
 MAPPING_FILE = f"{SQL_PATH}\\mapping.csv"
@@ -148,171 +74,344 @@ DESTINATION_FILE = f"{SQL_PATH}\\mapping_destination.json"
 
 def main(args):
     """
-     Entry point for the ETL process. Coordinates all steps from teardown to
-    data load.
+    Executes the full ETL pipeline for a given database and its test clone.
 
-    :param args: Parsed command-line arguments.
+    :param args: Parsed CLI arguments with `database` and `seed_test_database`
+    attributes.
     :type args: argparse.Namespace
+
+    :raises SystemExit: If any critical step in the pipeline fails.
     """
-    logging.getLogger("main")
+
     test_database = f"{args.database}_test"
 
-    logging.info(f"Running ETL for Database: {args.database}")
+    log.info("===============================================================")
+    log.info(f"⚫ STARTING: ETL for Database {args.database}")
 
-    logging.info("------ DROP DATABASES ------")
+    log.info("🔷 DROP DATABASES")
     # drop database
     drop_database(args.database)
     # drop test database
     drop_database(test_database)
-    logging.info("------ DROP ROLE ------")
+
+    log.info("🔷 DROP ROLE")
     # drop role
     drop_role(args.database)
 
-    logging.info("------ BUILD QUERY/TABLE MAPPINGS ------")
-    # define query/table mappings
-    build_mapping_data(MAPPING_FILE, SOURCE_FILE, DESTINATION_FILE)
+    log.info("🔷 BUILD QUERY/TABLE MAPPINGS")
+    # define source query/table mappings
+    build_mapping_data("source", MAPPING_FILE, SOURCE_FILE)
+    # define destination query/table mappings
+    build_mapping_data("destination", MAPPING_FILE, DESTINATION_FILE)
 
-    logging.info("------ BUILD DATABASES ------")
+    log.info("🔷 BUILD DATABASES")
     # build database
-    build_database(args.database)
-    # build test database
-    build_database(test_database)
+    create_database(args.database)
+    create_role(args.database)
+    grant_database_permissions(args.database)
+    create_database_schemas(args.database)
+    grant_table_permissions(args.database)
 
-    logging.info("------ CREATE DATABASE TABLES ------")
+    # build test database
+    create_database(test_database)
+    grant_database_permissions(test_database)
+    create_database_schemas(test_database)
+    grant_table_permissions(test_database)
+
+    log.info("🔷 CREATE DATABASE TABLES")
     # create database tables
     create_database_tables(args.database, DESTINATION_FILE)
     # create test database tables
     create_database_tables(test_database, DESTINATION_FILE)
 
-    logging.info("------ EXTRACT SOURCE DATA ------")
+    log.info("🔷 EXTRACT SOURCE DATA")
     # extract table data from source database
     source_data = extract_source_data(SOURCE_FILE)
 
     # load source data into destination database
-    logging.info("------ LOAD DESTINATION DATA ------")
+    log.info("🔷 LOAD DESTINATION DATA")
     load_destination_tables(args.database, DESTINATION_FILE, source_data)
 
     # load source data into destination test database
     if args.seed_test_database:
         load_destination_tables(test_database, DESTINATION_FILE, source_data)
 
-    logging.info(f"✅ ETL for Database: {args.database} completed.")
+    log.info(f"🏁 COMPLETED: ETL for Database: {args.database}.")
+    log.info("===============================================================")
 
 
-def load_destination_tables(database, destination_file, source_data):
+def load_destination_tables(
+        database: str,
+        destination_file: str,
+        source_data: str):
     """
-     Loads extracted source data into PostgreSQL destination tables.
+    Loads extracted source data into PostgreSQL destination tables.
 
-    :param database: Target database name.
+    :param database: Target PostgreSQL database name.
     :type database: str
-    :param destination_file: Path to the destination mapping JSON file.
+    :param destination_file: Path to JSON file containing destination query
+    mappings.
     :type destination_file: str
-    :param source_data: Extracted source data.
+    :param source_data: List of extracted data payloads to be inserted.
     :type source_data: list
-    :return: ``True`` if data was loaded successfully.
-    :rtype: bool
+
+    :raises SystemExit: If data insertion fails.
     """
 
+    log.info("➡️ STARTING: Loading Destination Tables")
     # execute insert queries to insert source data
-    success = insert_pg_tables(database, destination_file, source_data)
-    return success
+    success = dest.insert_pg_tables(database, destination_file, source_data)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Destination Tables not loaded.")
+
+    log.info("☑️ COMPLETED: Destination Tables loaded.")
+    log.info("---------------------------------------------------------------")
 
 
-def extract_source_data(source_file):
+def extract_source_data(source_file: str) -> list:
     """
-     Extracts source data from SQL Server using select queries.
+    Extracts source data using SQL SELECT queries defined in a JSON mapping
+    file.
 
-    :param source_file: Path to the source mapping JSON file.
+    :param source_file: Path to JSON file containing source query mappings.
     :type source_file: str
-    :return: List of tuples containing table ID and query results.
-    :rtype: list[tuple[int, Any]]
+
+    :return: Extracted data payloads.
+    :rtype: list
+
+    :raises SystemExit: If no data is returned.
     """
+
+    # get source data
+    log.info("➡️ STARTING: Extracting Source Data")
     # execute select queries to get source data
-    source_data = get_source_data(source_file)
+    success, source_data = srcdata.get_source_data(source_file)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: No source data returned.")
+
+    log.info("☑️ COMPLETED: Source Data extracted.")
+    log.info("---------------------------------------------------------------")
+
     return source_data
 
 
-def create_database_tables(database, destination_file):
+def create_database_tables(database: str, destination_file: str):
     """
-     Executes SQL `CREATE TABLE` scripts for the specified database.
+    Creates PostgreSQL tables using destination query definitions.
 
     :param database: Target database name.
     :type database: str
-    :param destination_file: Path to the destination mapping JSON file.
+    :param destination_file: Path to JSON file containing table creation
+    queries.
     :type destination_file: str
+
+    :raises SystemExit: If table creation fails.
     """
+
     # database: execute create table queries
-    create_pg_tables(database, destination_file)
+    log.info(f"➡️ STARTING: Creating {database} Tables.")
+    success = pgdb.create_pg_tables(database, destination_file)
+
+    if not success:
+        sys.exit(f"⛓️‍💥 EXITING: {database} Tables not created.")
+
+    log.info(f"☑️ COMPLETED: {database} Tables created.")
+    log.info("---------------------------------------------------------------")
 
 
-def build_database(database):
+def grant_table_permissions(database) -> bool:
     """
-     Creates the database, role, schemas, and grants permissions.
+    Grants table-level permissions for the specified database.
 
-    :param database: Name of the database to build.
+    :param database: Target database name.
     :type database: str
-    """
-    # create database
-    # create role
-    # grant database permissions
-    # create schemas
-    # grant schema and table permissions
-    logging.info(f"Creating Database: {database}")
-    build_pg_database(database)
-    logging.info(f"SUCCESS: {database} database built successfully.")
 
-
-def build_mapping_data(mapping_file, source_file, destination_file):
-    """
-     Generates source and destination query mappings from a CSV file and writes
-    them to JSON.
-
-    :param mapping_file: Path to the CSV mapping file.
-    :type mapping_file: str
-    :param source_file: Output path for source mapping JSON.
-    :type source_file: str
-    :param destination_file: Output path for destination mapping JSON.
-    :type destination_file: str
-    """
-    logging.info("Building Source Query/Table Mapping")
-    source = get_source_mapping_data(mapping_file)
-    write_mapping_data(source, source_file)
-    logging.info("SUCCESS: Source Query/Table Mapping Completing")
-
-    logging.info("Building Destination Query/Table Mapping")
-    destination = get_destination_mapping_data(mapping_file)
-    write_mapping_data(destination, destination_file)
-    logging.info("SUCCESS: Destination Query/Table Mapping Completing")
-
-
-def drop_role(database):
-    """
-     Drops the PostgreSQL role associated with the target database.
-
-    :param database: Name of the database whose role should be dropped.
-    :type database: str
-    :return: ``True`` if the role was dropped successfully.
+    :return: True if permissions granted successfully.
     :rtype: bool
+
+    :raises SystemExit: If permission grant fails.
     """
-    logging.info(f"Dropping role: {config("DB_ROLE")}.")
-    success = drop_pg_role(database, use_admin=True)
-    logging.info("✅ SUCCESS: role successfully dropped.")
-    return success
+
+    # grant database permissions
+    log.info("➡️ STARTING: Granting Table Permissions")
+    success = pgdb.grant_pg_table_permissions(database)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Table Permissions not granted.")
+
+    log.info("☑️ COMPLETED: Table Permissions granted.")
+    log.info("---------------------------------------------------------------")
 
 
-def drop_database(database) -> bool:
+def create_database_schemas(database) -> bool:
     """
-     Drops the specified PostgreSQL database.
+    Creates schemas for the specified PostgreSQL database.
+
+    :param database: Target database name.
+    :type database: str
+
+    :return: True if schemas created successfully.
+    :rtype: bool
+
+    :raises SystemExit: If schema creation fails.
+    """
+    # grant database permissions
+    log.info("➡️ STARTING: Creating Database Schemas.")
+    success = pgdb.create_pg_database_schemas(database)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Database Schemas not created.")
+
+    log.info("☑️ COMPLETED: Database Schemas created.")
+    log.info("---------------------------------------------------------------")
+
+
+def grant_database_permissions(database) -> bool:
+    """
+    Grants database-level permissions for the specified PostgreSQL database.
+
+    :param database: Target database name.
+    :type database: str
+
+    :return: True if permissions granted successfully.
+    :rtype: bool
+
+    :raises SystemExit: If permission grant fails.
+    """
+
+    # grant database permissions
+    log.info("➡️ STARTING: Granting Database Permissions")
+    success = pgdb.grant_pg_database_permissions(database)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Database Permissions not granted.")
+
+    log.info("☑️ COMPLETED: Database Permissions granted.")
+    log.info("---------------------------------------------------------------")
+
+
+def create_role(database: str):
+    """
+    Creates a PostgreSQL role for the specified database.
+
+    :param database: Target database name.
+    :type database: str
+
+    :raises SystemExit: If role creation fails.
+    """
+
+    # create role
+    log.info(f"➡️ STARTING: Creating Role {config("DB_ROLE")}")
+    success = pgdb.create_pg_role(database)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Role not created.")
+
+    log.info(f"☑️ COMPLETED: Role {config("DB_ROLE")} created.")
+    log.info("---------------------------------------------------------------")
+
+
+def create_database(database: str):
+    """
+    Creates a PostgreSQL database.
+
+    :param database: Name of the database to create.
+    :type database: str
+
+    :raises SystemExit: If database creation fails.
+    """
+
+    # create database
+    log.info(f"➡️ STARTING: Creating Database {database}.")
+    success = pgdb.create_pg_database(database)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Database not created.")
+
+    log.info(f"☑️ COMPLETED: Database {database} created.")
+    log.info("---------------------------------------------------------------")
+
+
+def build_mapping_data(mapping_type: str, mapping_file: str, output_file: str):
+    """
+    Generates query/table mappings from a CSV file and writes to JSON.
+
+    :param mapping_type: Either 'source' or 'destination'.
+    :type mapping_type: str
+    :param mapping_file: Path to the CSV file containing table/query mappings.
+    :type mapping_file: str
+    :param output_file: Path to the output JSON file.
+    :type output_file: str
+
+    :raises SystemExit: If mapping generation fails.
+    """
+
+    success = False
+    mapping = pd.DataFrame()
+    log.info(
+        f"➡️ STARTING: Building {mapping_type.title()} Query/Table Mapping."
+    )
+
+    match mapping_type:
+        case "source":
+            mapping = qmh.get_source_mapping_data(mapping_file)
+        case "destination":
+            mapping = qmh.get_destination_mapping_data(mapping_file)
+        case _:
+            log.error(f"FAILED: {mapping_type.title()} mapping not defined.")
+
+    if not mapping.empty:
+        success = qmh.write_mapping_data(mapping, output_file)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Query/Table Mapping failed.")
+
+    log.info(
+        f"☑️ COMPLETED: {mapping_type.title()} Query/Table Mapping completed."
+    )
+    log.info("---------------------------------------------------------------")
+
+
+def drop_role(database: str):
+    """
+    Drops the PostgreSQL role associated with the specified database.
+
+    :param database: Target database name.
+    :type database: str
+
+    :raises SystemExit: If role drop fails.
+    """
+
+    log.info(f"➡️ STARTING: Dropping role {config("DB_ROLE")}.")
+    success = pgdb.drop_pg_role(database, use_default=True)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Role failed to drop.")
+
+    log.info(f"☑️ COMPLETED: Role {config("DB_ROLE")} dropped.")
+    log.info("---------------------------------------------------------------")
+
+
+def drop_database(database: str):
+    """
+    Drops the specified PostgreSQL database.
 
     :param database: Name of the database to drop.
     :type database: str
-    :return: ``True`` if the database was dropped successfully.
-    :rtype: bool
+
+    :raises SystemExit: If database drop fails.
     """
-    logging.info(f"Dropping database: {database}.")
-    success = drop_pg_database(database)
-    logging.info(f"✅ SUCCESS: {database} successfully dropped.")
-    return success
+
+    log.info(f"➡️ STARTING: Dropping database: {database}.")
+    success = pgdb.drop_pg_database(database)
+
+    if not success:
+        sys.exit("⛓️‍💥 EXITING: Database failed to drop.")
+
+    log.info(f"☑️ COMPLETED: Database {database} dropped.")
+    log.info("---------------------------------------------------------------")
 
 
 if __name__ == "__main__":

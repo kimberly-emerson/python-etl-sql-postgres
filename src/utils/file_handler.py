@@ -1,101 +1,64 @@
 """
-JSON Query Utilities Module
-===========================
+Module: json_query_handler
+==========================
 
-This module provides utility functions for reading and validating JSON files
-and query text files. It integrates logging and validation to ensure robust
-data ingestion workflows.
-
-Overview
---------
-
-The module supports the following operations:
-
-- Reading JSON files and validating their contents.
-- Loading raw JSON data from disk.
-- Reading SQL or text-based queries from files.
-- Extracting query tuples from JSON structures.
+This module provides utilities for reading JSON files and extracting query data
+used in ETL pipelines or data orchestration workflows. It includes structured
+logging, validation, and error handling to support robust backend operations.
 
 Dependencies
 ------------
-
-- ``json``: Standard Python JSON parser.
-- ``utils.logger``: Custom logging configuration.
-- ``utils.validation.validate_list``: Utility for checking non-empty lists
-with logging.
+- json : For loading JSON content from disk.
+- typing : For type annotations.
+- utils.logging_handler.logger : Custom logger for structured logging.
+- utils.validation_handler : Validation utilities for list integrity checks.
 
 Functions
 ---------
-
-.. function:: read_json_file(name: str, file: str)
-
-   Reads and validates a JSON file.
-
-   :param name: A label used in log messages to identify the file.
-   :type name: str
-   :param file: Path to the JSON file.
-   :type file: str
-   :return: Tuple of (success flag, parsed JSON list).
-   :rtype: tuple[bool, list]
-
-   Logs success or failure and validates that the JSON content is a non-empty
-   list.
-
-.. function:: load_json_file(file: str)
-
-   Loads raw JSON data from a file.
-
-   :param file: Path to the JSON file.
-   :type file: str
-   :return: Parsed JSON data as a list.
-   :rtype: list
-
-   Handles file not found and JSON decoding errors with logging.
-
-.. function:: read_query_from_file(path: str)
-
-   Reads a query from a plain text file and strips newlines and tabs.
-
-   :param path: Path to the query file.
-   :type path: str
-   :return: Query string with whitespace removed.
-   :rtype: str
-
-   Logs file access or read errors.
-
-.. function:: get_query_list_from_file(name: str, queries: str)
-
-   Extracts a list of query tuples from a JSON-like structure.
-
-   :param name: Key name to extract from each query dictionary.
-   :type name: str
-   :param queries: List of dictionaries containing query metadata.
-   :type queries: list[dict]
-   :return: Tuple of (success flag, list of (table_id, query) tuples).
-   :rtype: tuple[bool, list[tuple[int, str]]]
-
-   Logs each successful query extraction and validates the final list.
+- read_json_file : Loads and validates a JSON file containing query
+definitions.
+- load_json_file : Reads raw JSON content from disk and returns a success flag.
+- read_query_from_file : Reads a raw SQL query from a text file.
+- get_query_list_from_file : Extracts a list of query tuples from JSON content.
 """
 
 import json
+from typing import Tuple
 
-from utils.logger import logging
-from utils.validation import validate_list
+from utils.logging_handler import logger as log
+import utils.validation_handler as vh
 
 
-def read_json_file(name: str, file: str):
+def read_json_file(name: str, file: str) -> Tuple[bool, list]:
     """
-    Reads and validates a JSON file.
+    Load and validate a JSON file containing query definitions.
 
-    :param name: A label used in log messages to identify the file.
-    :type name: str
-    :param file: Path to the JSON file.
-    :type file: str
-    :return: Tuple of (success flag, parsed JSON list).
-    :rtype: tuple[bool, list]
+    This function reads a JSON file, validates its contents using a list
+    integrity check, and returns a success flag along with the parsed data.
 
-    Logs success or failure and validates that the JSON content is a non-empty
-    list.
+    Parameters
+    ----------
+    name : str
+        A descriptive label used in logging to identify the source of the JSON
+        file.
+    file : str
+        Path to the JSON file to be read.
+
+    Returns
+    -------
+    Tuple[bool, list]
+        A tuple containing:
+        - success (bool): True if the file was read and validated successfully.
+        - queries (list): Parsed list of query definitions.
+
+    Logging
+    -------
+    Logs success or failure messages based on file read and validation outcome.
+
+    Example
+    -------
+    >>> read_json_file("source", "source_queries.json")
+    (True, [...])
     """
 
     # instantiate queries string variable
@@ -103,39 +66,59 @@ def read_json_file(name: str, file: str):
 
     try:
         # load json data from file into queries variable
-        queries = load_json_file(file)
+        success, queries = load_json_file(file)
 
         # test if queries variable is empty
-        if queries:
-            logging.info(f"SUCCESS: {name} JSON file read.")
+        if success:
+            log.info(f"🟢 SUCCESS: {name} JSON file read.")
         else:
-            logging.warning(f"FAILURE:{name} JSON file was not read.")
+            log.error(f"🔴 FAILED:{name} JSON file was not read.")
+
+        success = False
+        # test if queries list is not empty
+        success = vh.validate_list(f"{name} JSON File", queries)
+
+        # return success boolean and queries variable
+        return success, queries
 
     except FileNotFoundError as error:
-        logging.error(error)
+        log.error(error)
 
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    # test if queries list is not empty
-    success = validate_list(f"{name} JSON File", queries)
-
-    # return success boolean and queries variable
-    return (success, queries)
+        log.error(e)
 
 
-def load_json_file(file: str):
+def load_json_file(file: str) -> Tuple[bool, list]:
     """
-     Loads raw JSON data from a file.
+    Load raw JSON content from a file.
 
-    :param file: Path to the JSON file.
-    :type file: str
-    :return: Parsed JSON data as a list.
-    :rtype: list
+    This function opens a JSON file, parses its contents, and returns a
+    success flag along with the loaded data.
 
-    Handles file not found and JSON decoding errors with logging.
+    Parameters
+    ----------
+    file : str
+        Path to the JSON file.
+
+    Returns
+    -------
+    Tuple[bool, list]
+        A tuple containing:
+        - success (bool): True if the file was loaded successfully.
+        - data (list): Parsed JSON content.
+
+    Logging
+    -------
+    Logs errors for file not found, JSON decode issues, or unexpected
+    exceptions.
+
+    Example
+    -------
+    >>> load_json_file("queries.json")
+    (True, [...])
     """
 
+    success = False
     # instantiate data list variable
     data: list = list()
 
@@ -145,31 +128,53 @@ def load_json_file(file: str):
             # append loaded json file to data list variable
             data = json.load(file)
 
+            if not data:
+                raise FileNotFoundError
+            else:
+                success = True
+
+            # return data list variable with json data
+            return success, data
+
     except FileNotFoundError as error:
-        logging.error(error)
+        log.error(error, exc_info=True)
 
     except json.JSONDecodeError as error:
-        logging.error(error)
+        log.error(error, exc_info=True)
 
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    # return data list variable with json data
-    return data
+        log.error(e, exc_info=True)
 
 
-def read_query_from_file(path: str):
+def read_query_from_file(path: str) -> Tuple[bool, str]:
     """
-     Reads a query from a plain text file and strips newlines and tabs.
+    Read a raw SQL query from a text file.
 
-    :param path: Path to the query file.
-    :type path: str
-    :return: Query string with whitespace removed.
-    :rtype: str
+    This function opens a file containing a SQL query, strips newline and tab
+    characters, and returns the cleaned query string.
 
-    Logs file access or read errors.
+    Parameters
+    ----------
+    path : str
+        Path to the query file.
+
+    Returns
+    -------
+    Tuple[bool, str]
+        A tuple containing:
+        - success (bool): True if the query was read successfully.
+        - query (str): Cleaned SQL query string.
+
+    Logging
+    -------
+    Logs errors for file not found or unexpected exceptions.
+
+    Example
+    -------
+    >>> read_query_from_file("create_table.sql")
+    (True, "CREATE TABLE ...") 
     """
-
+    success = False
     # instantiate query list variable
     query: str = None
 
@@ -177,33 +182,55 @@ def read_query_from_file(path: str):
         # open query file
         with open(path, "r", encoding="UTF-8") as query:
             # read query file
-            # load into query list variable
+            # load into query variable
             query = query.read().replace("\n", "").replace("\t", "")
 
+        if query:
+            success = True
+
+        # return success bool and query list variable
+        return success, query
+
     except FileNotFoundError as error:
-        logging.error(error)
+        log.error(error, exc_info=True)
 
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    # return query list variable
-    return query
+        log.error(e, exc_info=True)
 
 
-def get_query_list_from_file(name: str, queries: str):
+def get_query_list_from_file(name: str, queries: str) -> Tuple[bool, list]:
     """
-     Extracts a list of query tuples from a JSON-like structure.
+    Extract a list of query tuples from JSON content.
 
-    :param name: Key name to extract from each query dictionary.
-    :type name: str
-    :param queries: List of dictionaries containing query metadata.
-    :type queries: list[dict]
-    :return: Tuple of (success flag, list of (table_id, query) tuples).
-    :rtype: tuple[bool, list[tuple[int, str]]]
+    This function iterates over a list of query dictionaries and constructs a
+    list of (table_id, query_string) tuples for downstream execution or
+    mapping.
 
-    Logs each successful query extraction and validates the final list.
+    Parameters
+    ----------
+    name : str
+        The key name used to extract query strings from each dictionary.
+    queries : str
+        A list of dictionaries containing query metadata.
+
+    Returns
+    -------
+    Tuple[bool, list]
+        A tuple containing:
+        - success (bool): True if the query list was constructed successfully.
+        - query_list (list): List of (table_id, query_string) tuples.
+
+    Logging
+    -------
+    Logs success for each query added and failure if the list is empty.
+
+    Example
+    -------
+    >>> get_query_list_from_file("destination_query_create", queries)
+    (True, [(1, "CREATE TABLE ..."), (2, "CREATE TABLE ...")])
     """
 
+    success = False
     # instantiate query_list list variable
     query_list: list = list()
 
@@ -212,13 +239,17 @@ def get_query_list_from_file(name: str, queries: str):
             # append create query to query_list variable
             query_list.append((int(query["table_id"]), query[f"{name}"]))
 
-            logging.info(f"SUCCESS: {query[f'{name}']} added to query list.")
+            log.info(f"🟢 SUCCESS: {query[f'{name}']} added to query list.")
+
+        # test if query_list is not empty
+        success = vh.validate_list(f"{name}", query_list)
+
+        if not success:
+            log.error(f"🔴 FAILED: {query[f'{name}']} not added to query \
+                        list.")
+
+        # return success boolean and query_list variable
+        return success, query_list
 
     except Exception as e:  # pylint: disable=broad-except
-        logging.error(e)
-
-    # test if query_list is not empty
-    success = validate_list(f"{name}", query_list)
-
-    # return success boolean and query_list variable
-    return (success, query_list)
+        log.error(e, exc_info=True)

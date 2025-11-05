@@ -1,5 +1,6 @@
-# SQL Server Connection String
-ADVENTUREWORKS_DB="DRIVER={ODBC Driver 17 for SQL Server};SERVER=[SERVER];DATABASE=[DATABASE];Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes"
+# SQL Server Connection Properties
+SQLSERVER_CONN="DRIVER={ODBC Driver 17 for SQL Server};SERVER=[SERVER];DATABASE=[DATABASE];Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes"
+SQLSERVER_DB_NAME=[sql_db_name]
 
 # PostgreSQL Connection Properties
 POSTGRESQL_HOSTNAME=localhost
@@ -17,3 +18,6 @@ SRC_PATH=C:\demos\python-etl-sql-postgres\src
 SQL_PATH=C:\demos\python-etl-sql-postgres\sql
 LOGS_PATH=C:\demos\python-etl-sql-postgres\logs
 UTILS_PATH=C:\demos\python-etl-sql-postgres\src\utils
+
+# Logging
+LOG_LEVEL=INFO
