@@ -1,4 +1,4 @@
-# ETL Orchestrator for PostgreSQL
+# Cross-Platform ETL Pipeline: SQL Server to PostgreSQL Migration
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 
 This repository contains a modular ETL orchestration pipeline from SQL Server to  PostgreSQL databases. It automates the full lifecycle of database teardown, schema creation, query mapping generation, data extraction, and data loading into production and test environments.
 
-## 🚀 Overview
+## 🪄 Overview
 
 The ETL workflow is coordinated through a single entry point (`main.py`) and integrates reusable modules for:
 
@@ -30,55 +30,6 @@ The ETL pipeline processes data across 35 distinct tables, resulting in a total 
 |Total Number of Tables|35|
 |Total Number of Rows|485,625|
 
-## 📦 Packages
-
-| Domain            | Package           | Minimum Version |
-|------------------|-------------------|-----------------|
-| Database Drivers | psycopg2          | 2.9.10          |
-|                  | pyodbc            | 5.2.0           |
-| Environment      | python-decouple   | 3.8             |
-|                  | python-dotenv     | 1.1.1           |
-| CLI Utilities    | argparse          | 1.4.0           |
-| Data Processing  | pandas            | 2.3.3           |
-| Code Formatting  | black             | 25.9.0          |
-
-## 🧩 Modular Components
-
-Each stage of the pipeline is modular and testable:
-
-- `create_database()`: Creates PostgreSQL databases
-- `create_role()`: Creates database roles
-- `grant_database_permissions()`: Grants database-level access
-- `create_database_schemas()`: Creates schemas
-- `create_database_tables()`: Creates tables from SQL files
-- `extract_source_data()`: Extracts data from source queries
-- `load_destination_tables()`: Loads data into destination tables
-- `build_mapping_data()`: Generates query/table mappings from CSV
-
-## 📦 Repository Structure
-
-```text
-├── sql/                                   # SQL scripts and mappings
-│   ├── source/
-│   ├── destination/
-│   ├── mapping.csv                        # Source-to-destination table/query mapping
-│   ├── mapping_source.json                # Generated source query mappings
-│   └── mapping_destination.json           # Generated destination query mappings
-├── logs/                                  # Runtime logging
-│   └── app.log                            # Application log output
-├── src/
-│   ├── build/
-│   │   └── build_destination_database.py  # PostgreSQL DDL and permission utilities
-│   ├── extract/
-│   │   └── get_source_data.py            # Source data extraction logic
-│   ├── load/
-│   │   └── insert_source_data.py         # Destination data insertion logic
-│   ├── utils/
-│   │   ├── file_handler.py               # JSON and SQL file utilities
-│   │   ├── logging_handler.py            # Structured logging
-│   │   └── query_mapping_handler.py      # Mapping generation from CSV
-│   └── main.py                           # ETL orchestration entry point
-```
 
 ```mermaid
 ---
@@ -153,6 +104,56 @@ sequenceDiagram
 
     Main->>Log: Log "ETL COMPLETED"
 
+```
+
+## 📦 Packages
+
+| Domain            | Package           | Minimum Version |
+|------------------|-------------------|-----------------|
+| Database Drivers | psycopg2          | 2.9.10          |
+|                  | pyodbc            | 5.2.0           |
+| Environment      | python-decouple   | 3.8             |
+|                  | python-dotenv     | 1.1.1           |
+| CLI Utilities    | argparse          | 1.4.0           |
+| Data Processing  | pandas            | 2.3.3           |
+| Code Formatting  | black             | 25.9.0          |
+
+## 🧩 Modular Components
+
+Each stage of the pipeline is modular and testable:
+
+- `create_database()`: Creates PostgreSQL databases
+- `create_role()`: Creates database roles
+- `grant_database_permissions()`: Grants database-level access
+- `create_database_schemas()`: Creates schemas
+- `create_database_tables()`: Creates tables from SQL files
+- `extract_source_data()`: Extracts data from source queries
+- `load_destination_tables()`: Loads data into destination tables
+- `build_mapping_data()`: Generates query/table mappings from CSV
+
+## 📦 Repository Structure
+
+```text
+├── sql/                                   # SQL scripts and mappings
+│   ├── source/
+│   ├── destination/
+│   ├── mapping.csv                        # Source-to-destination table/query mapping
+│   ├── mapping_source.json                # Generated source query mappings
+│   └── mapping_destination.json           # Generated destination query mappings
+├── logs/                                  # Runtime logging
+│   └── app.log                            # Application log output
+├── src/
+│   ├── build/
+│   │   └── build_destination_database.py  # PostgreSQL DDL and permission utilities
+│   ├── extract/
+│   │   └── get_source_data.py            # Source data extraction logic
+│   ├── load/
+│   │   └── insert_source_data.py         # Destination data insertion logic
+│   ├── utils/
+│   │   ├── file_handler.py               # JSON and SQL file utilities
+│   │   ├── logging_handler.py            # Structured logging
+│   │   └── query_mapping_handler.py      # Mapping generation from CSV
+│   └── main.py                           # ETL orchestration entry point
 ```
 
 ## ✅ Logging
